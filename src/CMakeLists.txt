@@ -10,7 +10,7 @@ if (CMAKE_SYSTEM_NAME MATCHES Linux)
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES Darwin)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0 -Wall") #-Werror
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall")# -Werror")
 endif ()
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -37,25 +37,33 @@ FILE(GLOB OSDK_LIB_HEADERS
         "${OSDK_LIB_HEADER_DIR}/platform/linux/inc"
         )
 include_directories("${OSDK_LIB_HEADERS}")
+link_directories("${OSDK_LIB_DIR}")
 
 # Mavlink-SDK
 set(MAVLINK_LIB_HEADER_DIR ../mavlink/v1.0)
 
 FILE(GLOB MAVLINK_LIB_HEADERS
-        "${MAVLINK_LIB_HEADER_DIR}/"
+        "${MAVLINK_LIB_HEADER_DIR}"
         "${MAVLINK_LIB_HEADER_DIR}/common"
         )
 
 include_directories("${MAVLINK_LIB_HEADERS}")
 
+# Common libraries and headers
+set(MAVLINK_LIB_HEADER_DIR ../mavlink/v1.0)
+
+FILE(GLOB COMMMON_LIB_HEADERS
+        "${PROJECT_SOURCE_DIR}/lib/uthash"
+        "${PROJECT_SOURCE_DIR}/include"
+        "${PROJECT_SOURCE_DIR}/lib"
+        )
+
+include_directories("${COMMMON_LIB_HEADERS}")
+
+
 # subdirectories
 add_subdirectory(modules/mavlink)
 
-# common includes
-include_directories("${PROJECT_SOURCE_DIR}/lib")
-
-# common libraries
-link_directories("${OSDK_LIB_DIR}")
 
 # executable
 add_executable(msp-onboard main.cpp)
