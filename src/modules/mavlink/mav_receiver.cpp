@@ -9,9 +9,40 @@
 #include "defines.h"
 #include "mav_mavlink.h"
 
+//-------------------------------------------------------------
+// Abstract class Mavlink
+//-------------------------------------------------------------
+void
+Mavlink::handle_message_heartbeat(mavlink_message_t *msg)
+{
+	if (getChannel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
+		mavlink_heartbeat_t hb;
+		mavlink_msg_heartbeat_decode(msg, &hb);
+
+        mavlink_msg_heartbeat_send(getChannel(), MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
+	}
+}
 
 void
-Mavlink::readMessage()
+Mavlink::handle_message(mavlink_message_t *msg)
+{
+	switch (msg->msgid) {
+
+	case MAVLINK_MSG_ID_HEARTBEAT:
+		handle_message_heartbeat(msg);
+		break;
+
+	default:
+		break;
+	}
+}
+
+
+//-------------------------------------------------------------
+// Class MavlinkUDP
+//-------------------------------------------------------------
+void
+MavlinkUDP::readMessage()
 {
     // check for received data 
     if (poll(&fds[0], 1, timeout) > 0) {
@@ -38,29 +69,4 @@ Mavlink::readMessage()
     
     // handle timeouts and resets
     mission_manager.run();
-}
-
-void
-Mavlink::handle_message_heartbeat(mavlink_message_t *msg)
-{
-	if (getChannel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
-		mavlink_heartbeat_t hb;
-		mavlink_msg_heartbeat_decode(msg, &hb);
-
-        mavlink_msg_heartbeat_send(getChannel(), MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
-	}
-}
-
-void
-Mavlink::handle_message(mavlink_message_t *msg)
-{
-	switch (msg->msgid) {
-
-	case MAVLINK_MSG_ID_HEARTBEAT:
-		handle_message_heartbeat(msg);
-		break;
-
-	default:
-		break;
-	}
 }

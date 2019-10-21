@@ -11,7 +11,6 @@ if (CMAKE_SYSTEM_NAME MATCHES Linux)
     option(DJI_OSDK "Use of dji osdk" ON)
 endif()
 
-
 # Update submodules as needed
 # see https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
 find_package(Git QUIET)
@@ -35,6 +34,6 @@ endif()
 
 if (DJI_OSDK)
     add_subdirectory(Onboard-SDK)
-endif (DJI_OSDK)
+endif ()
 
 add_subdirectory(src)

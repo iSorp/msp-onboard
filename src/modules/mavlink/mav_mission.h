@@ -6,7 +6,7 @@
 #include "defines.h"
 
 
-class Mavlink;
+struct Mavlink;
 
 class MavlinkMissionManager
 {

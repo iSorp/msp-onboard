@@ -53,7 +53,6 @@ include_directories("${MAVLINK_LIB_HEADERS}")
 set(MAVLINK_LIB_HEADER_DIR ../mavlink/v1.0)
 
 FILE(GLOB COMMMON_LIB_HEADERS
-        "${PROJECT_SOURCE_DIR}/lib/uthash"
         "${PROJECT_SOURCE_DIR}/include"
         "${PROJECT_SOURCE_DIR}/lib"
         )
@@ -61,17 +60,20 @@ FILE(GLOB COMMMON_LIB_HEADERS
 include_directories("${COMMMON_LIB_HEADERS}")
 
 
-# subdirectories
+# submodules
 add_subdirectory(modules/mavlink)
+add_subdirectory(modules/dji)
 
 
 # executable
 add_executable(msp-onboard main.cpp)
+
 target_link_libraries(msp-onboard pthread)
 target_link_libraries(msp-onboard mavlink)
 
 if (DJI_OSDK)
-    target_link_libraries(msp libdjiosdk-core)
+    target_link_libraries(msp-onboard dji)
+    target_link_libraries(msp-onboard libdjiosdk-core)
 endif(DJI_OSDK)
 
 install (TARGETS msp-onboard DESTINATION "${msp-onboard_SOURCE_DIR}/bin")

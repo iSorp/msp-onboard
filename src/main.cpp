@@ -12,19 +12,16 @@
 #include <time.h>
 #include <arpa/inet.h>
 
-
-
-
-
-
-// System Includes
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <thread>
 
 #include "mav_mavlink.h"
-#include "mav_mission.h"
 
+#ifdef DJI_OSDK
+    #include "dji_mavlink.h"
+#endif
 
 /*#include <cmath>
 #include <stdio.h>
@@ -38,7 +35,15 @@
 int main() {
 	printf("%s", "hello world");
     
-    start_mavlink_task();
+    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
+    std::thread t1 = mavlinkUDP->start();
+    
+    #ifdef DJI_OSDK
+        MavlinkDJI* mavlinkDJI = new MavlinkDJI();
+        std::thread t2 = mavlinkDJI->start();
+    #endif
+
+    //start_mavlink_task();
     //test(0,0);   
     //Mavlink* mavlink = new Mavlink();
     //MavlinkMissionManager* mission = new MavlinkMissionManager(mavlink);
@@ -48,5 +53,14 @@ int main() {
         setvbuf (stdout, NULL, _IONBF, 0);
     }
    
-    return 1;
+    mavlinkUDP->stop();
+    t1.join();
+    delete mavlinkUDP;
+
+    #ifdef DJI_OSDK
+        mavlinkDJI->stop();
+        t2.join();
+        delete mavlinkDJI;
+    #endif
+    return 0;
 }
