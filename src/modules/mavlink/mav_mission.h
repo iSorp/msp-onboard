@@ -47,7 +47,7 @@ class MavlinkMissionManager
                 MissionStateContext *context;
 
                 void handleMissionCount(const mavlink_message_t *msg);
-                void handleMissionItemInt(const mavlink_message_t *msg);
+                void handleMissionItem(const mavlink_message_t *msg);
                 void handleMissionAck(const mavlink_message_t *msg);
                 void handleMissionRequest(uint8_t sysid, uint8_t compid, uint16_t seq);
                 void sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type);
@@ -64,10 +64,10 @@ class MavlinkMissionManager
                 void run() override;
         };
 
-        class MissionUploadItemInt : public MissionState {
+        class MissionUploadItem : public MissionState {
             public:
-                MissionUploadItemInt(MissionStateContext *context) : MissionState(context) {};
-                ~MissionUploadItemInt() {};
+                MissionUploadItem(MissionStateContext *context) : MissionState(context) {};
+                ~MissionUploadItem() {};
 
                 // Overrides
                 void handleMessage(const mavlink_message_t *msg) override;
@@ -88,7 +88,7 @@ class MavlinkMissionManager
                 MissionStateContext(Mavlink *mavlink) : 
                     mavlink(mavlink),
                     missionUploadInit(this),
-                    missionUploadItemInt(this),
+                    missionUploadItem(this),
                     missionUploadEnd(this) 
                 { 
                     state = &missionUploadInit;
@@ -100,15 +100,16 @@ class MavlinkMissionManager
 
                 // States
                 MissionUploadInit missionUploadInit;
-                MissionUploadItemInt missionUploadItemInt;
+                MissionUploadItem missionUploadItem;
                 MissionUploadEnd missionUploadEnd;
 
+                int retries = 0;
                 int count = 0;
                 int seq = 0;
                 int transferSysId = 0;
 			    int transferCompId = 0;
                 int repeatCounter = 0;
-                const uint64_t sendResponseTimeout = 3000000;
+                const uint64_t sendResponseTimeout = MAV_TIMEOUT;
 
                 // Overrides
                 //void run(const mavlink_message_t *msg);

@@ -9,5 +9,7 @@
 #define COMPID  1
 
 
-#define MAX_MISSION_ITEM_COUNT 100
-#define MAX_RETRIES 3
+#define MAX_MISSION_ITEM_COUNT 200
+
+#define MAV_MAX_RETRIES 5
+#define MAV_TIMEOUT 3000000 // 3 sec
