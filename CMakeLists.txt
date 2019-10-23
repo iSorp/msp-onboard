@@ -9,6 +9,7 @@ set (MSP_VERSION_MINOR 0)
 
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
     option(DJI_OSDK "Use of dji osdk" ON)
+    add_definitions(-DDJI_OSDK)
 endif()
 
 # Update submodules as needed

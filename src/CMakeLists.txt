@@ -5,12 +5,16 @@ project(msp)
 message("System: ${CMAKE_SYSTEM_NAME}")
 message("Build type: ${CMAKE_BUILD_TYPE}")
 
+if(NOT CMAKE_BUILD_TYPE) 
+    set(CMAKE_BUILD_TYPE Debug)
+endif(NOT CMAKE_BUILD_TYPE)
+
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
-  set(COMMON_CXX_FLAGS "-std=c++11 -pthread -fPIC")
+  set(COMMON_CXX_FLAGS "-std=c++11 -fPIC")
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES Darwin)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall")# -Werror")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")# -Werror")
 endif ()
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -23,21 +27,7 @@ endif ()
 
 
 ## Dji-Onboard-SDK
-set(OSDK_LIB_HEADER_DIR ../Onboard-SDK/osdk-core)
-set(OSDK_LIB_DIR ../Onboard-SDK/libs)
-
-FILE(GLOB OSDK_LIB_HEADERS
-        "${OSDK_LIB_HEADER_DIR}/api/inc"
-        "${OSDK_LIB_HEADER_DIR}/modules/inc/payload"
-        "${OSDK_LIB_HEADER_DIR}/modules/inc/flight"
-        "${OSDK_LIB_HEADER_DIR}/protocol/inc"
-        "${OSDK_LIB_HEADER_DIR}/hal/inc"
-        "${OSDK_LIB_HEADER_DIR}/utility/inc"
-        "${OSDK_LIB_HEADER_DIR}/default/inc"
-        "${OSDK_LIB_HEADER_DIR}/platform/linux/inc"
-        )
-include_directories("${OSDK_LIB_HEADERS}")
-link_directories("${OSDK_LIB_DIR}")
+include_directories("${CMAKE_INSTALL_PREFIX}/include/djiosdk")
 
 # Mavlink-SDK
 set(MAVLINK_LIB_HEADER_DIR ../mavlink/v1.0)
@@ -58,7 +48,7 @@ FILE(GLOB COMMMON_LIB_HEADERS
         )
 
 include_directories("${COMMMON_LIB_HEADERS}")
-
+include_directories("${PROJECT_SOURCE_DIR}")
 
 # submodules
 add_subdirectory(modules/mavlink)
@@ -67,14 +57,12 @@ add_subdirectory(modules/dji)
 
 # executable
 add_executable(msp-onboard main.cpp)
-
-target_link_libraries(msp-onboard pthread)
 target_link_libraries(msp-onboard mavlink)
 
 if (DJI_OSDK)
-    target_link_libraries(msp-onboard dji)
-    target_link_libraries(msp-onboard libdjiosdk-core)
+    target_link_libraries(msp-onboard dji djiosdk-core)
 endif(DJI_OSDK)
 
 install (TARGETS msp-onboard DESTINATION "${msp-onboard_SOURCE_DIR}/bin")
+
 
