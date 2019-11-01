@@ -19,6 +19,7 @@ Mavlink::handle_message_heartbeat(mavlink_message_t *msg)
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
+        // response heartbeat
         mavlink_msg_heartbeat_send(getChannel(), MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
 	}
 }
@@ -63,10 +64,12 @@ MavlinkUDP::readMessage()
 
                 // handle mission data
                 mission_manager.handle_message(&msg);
+                ftp_manager.handle_message(&msg);
             }
         }
     }
     
     // handle timeouts and resets
     mission_manager.run();
+    ftp_manager.run();
 }

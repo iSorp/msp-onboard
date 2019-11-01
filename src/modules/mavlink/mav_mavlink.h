@@ -8,11 +8,14 @@
 
 #include "mavlink_bridge_header.h"
 #include "mav_mission.h"
+#include "mav_ftp.h"
 
 struct Mavlink
 {
     public:
-        Mavlink() : mission_manager(this) { }
+        Mavlink() : 
+        mission_manager(this),
+        ftp_manager(this) { }
 
         virtual ~Mavlink();
 
@@ -38,8 +41,6 @@ struct Mavlink
         virtual int sendPacket() = 0;
 
     protected:
-        
-
         // Virtual functions
         virtual void init() = 0;
         virtual void readMessage() = 0;
@@ -50,6 +51,7 @@ struct Mavlink
         
         // Microservices
         MavlinkMissionManager mission_manager;
+        MavlinkFtpManager ftp_manager;
 
     private:
         // Variables

@@ -3,8 +3,6 @@
 #include "mav_mavlink.h"
 #include "helper.h"
 
-
-
 //-------------------------------------------------------------
 // Class MavlinkMissionManager
 //-------------------------------------------------------------
@@ -24,7 +22,7 @@ MavlinkMissionManager::activateMission()
 
 void
 MavlinkMissionManager::run() {
-    missionUploader->getState()->run();
+    missionDownloadService.getState()->run();
 }
 
 
@@ -34,30 +32,21 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
     switch (msg->msgid) {
 
         case MAVLINK_MSG_ID_MISSION_COUNT:
-            missionUploader->setState(&missionUploader->missionUploadInit);
+            missionDownloadService.setState(&missionDownloadService.missionDownloadInit);
             break;
 
         default:
             break;
     }
     
-    missionUploader->getState()->handleMessage(msg);
+    missionDownloadService.getState()->handleMessage(msg);
 }
 
 //-------------------------------------------------------------
-// Class MissionState 
+// Class MissionDownloadService 
 //-------------------------------------------------------------
 void
-MavlinkMissionManager::MissionState::handleMessage(const mavlink_message_t *msg) { }
-void
-MavlinkMissionManager::MissionState::entry() {}
-void
-MavlinkMissionManager::MissionState::run() {}
-void
-MavlinkMissionManager::MissionState::exit() { }
-
-void
-MavlinkMissionManager::MissionState::handleMissionCount(const mavlink_message_t *msg)
+MavlinkMissionManager::MissionDownloadService::handleMissionCount(const mavlink_message_t *msg)
 {
 	mavlink_mission_count_t itemCount;
 	mavlink_msg_mission_count_decode(msg, &itemCount);
@@ -66,34 +55,33 @@ MavlinkMissionManager::MissionState::handleMissionCount(const mavlink_message_t 
 
     if (itemCount.count >= MAX_MISSION_ITEM_COUNT) {
         printf("handleMissionCount: too many mission items");
-        sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_NO_SPACE);
+        sendMissionAck(transferSysId, transferCompId, MAV_MISSION_NO_SPACE);
         return;
     }
     
-
-    context->transferSysId = msg->sysid;
-    context->transferCompId = msg->compid;
-    context->count = itemCount.count;
+    transferSysId = msg->sysid;
+    transferCompId = msg->compid;
+    count = itemCount.count;
 }
 
 void
-MavlinkMissionManager::MissionState::handleMissionRequest(uint8_t sysid, uint8_t compid, uint16_t seq)
+MavlinkMissionManager::MissionDownloadService::handleMissionRequest(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
 	if (seq < MAX_MISSION_ITEM_COUNT) {
         mavlink_mission_request_t wpr;
         wpr.target_system = sysid;
         wpr.target_component = compid;
         wpr.seq = seq;
-        mavlink_msg_mission_request_send_struct(context->mavlink->getChannel(), &wpr);
+        mavlink_msg_mission_request_send_struct(mavlink->getChannel(), &wpr);
         printf("item request: %i \n", seq);
 	} else {
         printf("ERROR: Waypoint index exceeds list capacity");
-        sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_NO_SPACE);
+        sendMissionAck(transferSysId, transferCompId, MAV_MISSION_NO_SPACE);
 	}
 }
 
 void
-MavlinkMissionManager::MissionState::handleMissionItem(const mavlink_message_t *msg)
+MavlinkMissionManager::MissionDownloadService::handleMissionItem(const mavlink_message_t *msg)
 {
 	mavlink_mission_item_t wp;
 	mavlink_msg_mission_item_decode(msg, &wp);
@@ -106,21 +94,21 @@ MavlinkMissionManager::MissionState::handleMissionItem(const mavlink_message_t *
 }
 
 void
-MavlinkMissionManager::MissionState::sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type)
+MavlinkMissionManager::MissionDownloadService::sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type)
 {
 	mavlink_mission_ack_t wpa;
 	wpa.target_system    = sysid;
 	wpa.target_component = compid;
 	wpa.type = type;
 
-	mavlink_msg_mission_ack_send_struct(context->mavlink->getChannel(), &wpa);
+	mavlink_msg_mission_ack_send_struct(mavlink->getChannel(), &wpa);
 }
 
 //-------------------------------------------------------------
-// Class MissionUploadInit 
+// Class MissionDownloadInit 
 //-------------------------------------------------------------
 void
-MavlinkMissionManager::MissionUploadInit::entry() { 
+MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::entry() { 
     // initialize 
     context->retries = 0;
     context->count = 0;
@@ -131,24 +119,24 @@ MavlinkMissionManager::MissionUploadInit::entry() {
 }
 
 void
-MavlinkMissionManager::MissionUploadInit::handleMessage(const mavlink_message_t *msg) { 
+MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::handleMessage(const mavlink_message_t *msg) { 
     if (msg->msgid == MAVLINK_MSG_ID_MISSION_COUNT) { 
-        handleMissionCount(msg);
-        handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
+        context->handleMissionCount(msg);
+        context->handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
 
-        context->setState(&context->missionUploadItem);
+        context->setState(&context->missionDownloadItem);
     }
 }
 
 void
-MavlinkMissionManager::MissionUploadInit::run() { }
+MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::run() { }
 
 //-------------------------------------------------------------
-// Class MissionUploadItemInt 
+// Class MissionDownloadItemInt 
 //-------------------------------------------------------------
 
 void
-MavlinkMissionManager::MissionUploadItem::handleMessage(const mavlink_message_t *msg) { 
+MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::handleMessage(const mavlink_message_t *msg) { 
     if (msg->msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
 
         mavlink_mission_item_t wp;
@@ -157,7 +145,7 @@ MavlinkMissionManager::MissionUploadItem::handleMessage(const mavlink_message_t 
 
         // check item sequence number, musst be equal than the requested item
         if (wp.seq == context->seq) {
-            handleMissionItem(msg);
+            context->handleMissionItem(msg);
             context->seq++;
         }
         else {
@@ -166,35 +154,35 @@ MavlinkMissionManager::MissionUploadItem::handleMessage(const mavlink_message_t 
 
             if (MAV_MAX_RETRIES < context->retries) {
                 ++context->retries;
-                sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_INVALID_SEQUENCE);
-                context->setState(&context->missionUploadInit);
+                context->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_INVALID_SEQUENCE);
+                context->setState(&context->missionDownloadInit);
                 return;
             }
         }
 
         if (context->seq <= context->count) {
             // send next item request
-            handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
+            context->handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
         }
         else {
             // send mission acknowledge
-            context->setState(&context->missionUploadEnd);
+            context->setState(&context->missionDownloadEnd);
         }
     }
 }
 
 void
-MavlinkMissionManager::MissionUploadItem::run() { 
+MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::run() { 
 
     if ((microsSinceEpoch() - context->mavlink->getSendTime()) > context->sendResponseTimeout) {
         if (context->repeatCounter < MAV_MAX_RETRIES){
-            handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
+            context->handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
             ++context->repeatCounter;
         }
         else{
             printf("max retries reached");
-            sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ERROR);
-            context->setState(&context->missionUploadInit);
+            context->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ERROR);
+            context->setState(&context->missionDownloadInit);
             return;
         }
     }
@@ -202,11 +190,11 @@ MavlinkMissionManager::MissionUploadItem::run() {
 
 
 //-------------------------------------------------------------
-// Class MissionUploadEnd 
+// Class MissionDownloadEnd 
 //-------------------------------------------------------------
 void
-MavlinkMissionManager::MissionUploadEnd::entry() { 
-    sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ACCEPTED);
-
-    context->setState(&context->missionUploadInit);
+MavlinkMissionManager::MissionDownloadService::MissionDownloadEnd::entry() { 
+    
+    context->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ACCEPTED);
+    context->setState(&context->missionDownloadInit);
 }

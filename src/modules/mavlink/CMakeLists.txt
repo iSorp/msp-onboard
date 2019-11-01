@@ -2,6 +2,7 @@ set (mavlink_src
     mav_mavlink.cpp
     mav_receiver.cpp
     mav_mission.cpp
+    mav_ftp.cpp
     )
 
 

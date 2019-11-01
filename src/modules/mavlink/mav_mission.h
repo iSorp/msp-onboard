@@ -1,131 +1,78 @@
-
 #pragma once
 
-
 #include "mavlink_bridge_header.h"
+#include "mav_service.h"
 #include "defines.h"
-
 
 struct Mavlink;
 
-class MavlinkMissionManager
+class MavlinkMissionManager : public MavlinkServiceManager
 {
     public:
-        MavlinkMissionManager(Mavlink *mavlink) : mavlink(mavlink) {
-            missionUploader = new MissionStateContext(mavlink);
-        }
+        MavlinkMissionManager(Mavlink *mavlink) : MavlinkServiceManager(mavlink),
+            missionDownloadService(mavlink) { }
 
-        ~MavlinkMissionManager() {
-            delete missionUploader;
-        }
-
-        void handle_message(const mavlink_message_t *msg);
-        void run();
+        void handle_message(const mavlink_message_t *msg) override;
+        void run() override;
+        
         void checkActiveMission();
         void activateMission();
-      
-    protected:
-        
 
     private:      
-        class MissionStateContext;
 
-        Mavlink *mavlink;
-        MissionStateContext *missionUploader;
-
-
-        class MissionState  {
+        class MissionDownloadService : public MavlinkService {
             public:
-                MissionState(MissionStateContext *context) : context(context) {};
+                MissionDownloadService(Mavlink *mavlink) : MavlinkService(mavlink),
+                    missionDownloadInit(this), 
+                    missionDownloadItem(this), 
+                    missionDownloadEnd(this)
+                { 
+                    state = &missionDownloadInit;
+                };
 
-                virtual void handleMessage(const mavlink_message_t *msg);
-                virtual void entry();
-                virtual void exit();
-                virtual void run();
+                // Variables
+                int count = 0;
+                int seq = 0;
 
-            protected:
-                MissionStateContext *context;
-
+                // Functions
                 void handleMissionCount(const mavlink_message_t *msg);
                 void handleMissionItem(const mavlink_message_t *msg);
                 void handleMissionAck(const mavlink_message_t *msg);
                 void handleMissionRequest(uint8_t sysid, uint8_t compid, uint16_t seq);
                 void sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type);
-        };
 
-        class MissionUploadInit : public MissionState {
-            public:
-                MissionUploadInit(MissionStateContext *context) : MissionState(context) {};
-                ~MissionUploadInit() {};
-
-                // Overrides
-                void handleMessage(const mavlink_message_t *msg) override;
-                void entry() override;
-                void run() override;
-        };
-
-        class MissionUploadItem : public MissionState {
-            public:
-                MissionUploadItem(MissionStateContext *context) : MissionState(context) {};
-                ~MissionUploadItem() {};
-
-                // Overrides
-                void handleMessage(const mavlink_message_t *msg) override;
-                void run() override;
-        };
-
-       class MissionUploadEnd : public MissionState {
-            public:
-                MissionUploadEnd(MissionStateContext *context) : MissionState(context) {};
-                ~MissionUploadEnd() {};
-
-                // Overrides
-                void entry() override;
-        };
-
-        class MissionStateContext {
-            public:
-                MissionStateContext(Mavlink *mavlink) : 
-                    mavlink(mavlink),
-                    missionUploadInit(this),
-                    missionUploadItem(this),
-                    missionUploadEnd(this) 
-                { 
-                    state = &missionUploadInit;
+                
+                class MissionDownloadInit : public ServiceState<MissionDownloadService> {
+                    public:
+                        MissionDownloadInit(MissionDownloadService *context) : ServiceState(context) {};
+                        void handleMessage(const mavlink_message_t *msg) override;
+                        void entry() override;
+                        void run() override;
                 };
 
-                ~MissionStateContext() { };
+                class MissionDownloadItem : public ServiceState<MissionDownloadService> {
+                    public:
+                        MissionDownloadItem(MissionDownloadService *context) : ServiceState(context) {};
 
-                Mavlink *mavlink;
-
-                // States
-                MissionUploadInit missionUploadInit;
-                MissionUploadItem missionUploadItem;
-                MissionUploadEnd missionUploadEnd;
-
-                int retries = 0;
-                int count = 0;
-                int seq = 0;
-                int transferSysId = 0;
-			    int transferCompId = 0;
-                int repeatCounter = 0;
-                const uint64_t sendResponseTimeout = MAV_TIMEOUT;
-
-                // Overrides
-                //void run(const mavlink_message_t *msg);
-
-                // Functions
-                MissionState* getState() {return state; };
-                void setState(MissionState *_state) {
-                    _state->exit();
-                    state = _state; 
-                    state->entry();
+                        // Overrides
+                        void handleMessage(const mavlink_message_t *msg) override;
+                        void run() override;
+                   
                 };
-            private:
+
+                class MissionDownloadEnd : public ServiceState<MissionDownloadService> {
+                    public:
+                        MissionDownloadEnd(MissionDownloadService *context) : ServiceState(context) {};
+                        void entry() override;
+                };
 
                 // States
-                MissionState *state;
+                MissionDownloadInit missionDownloadInit;
+                MissionDownloadItem missionDownloadItem;
+                MissionDownloadEnd missionDownloadEnd;
         };     
+
+        MissionDownloadService missionDownloadService;
 };
 
 
