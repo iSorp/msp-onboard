@@ -43,6 +43,10 @@ MavlinkFtpManager::FileUploadService::sendNakFailure(uint8_t sysid, uint8_t comp
     mavlink_file_transfer_protocol_t ftp;
     ftp.target_system       = sysid;
     ftp.target_component    = compid;
+    memcpy(&ftp.payload[SEQ], &seq, 2);
+    ftp.payload[SESS]       = session; 
+    ftp.payload[CODE]       = NAK;
+    ftp.payload[SIZE]       = 1;
     ftp.payload[DATA]       = failure; 
     mavlink_msg_file_transfer_protocol_send_struct(mavlink->getChannel(), &ftp);
 }
@@ -55,18 +59,14 @@ MavlinkFtpManager::FileUploadService::sendOpenSession() {
 
     ftp.target_system       = transferSysId;
     ftp.target_component    = transferCompId;
-    ftp.payload[SEQ]        = 0xff & seq;
-    ftp.payload[SEQ+1]      = 0xff & seq >> 8;
+
+    memcpy(&ftp.payload[SEQ], &seq, 2);
     ftp.payload[SESS]       = session; 
     ftp.payload[CODE]       = ACK; 
     ftp.payload[SIZE]       = 4;
     ftp.payload[REQCODE]    = reqCode;
     
-    uint8_t ar[4];
-    memcpy(ar, &file_size, sizeof(file_size));
-
-    ftp.payload[DATA]   = ar[0];
-    ftp.payload[DATA+1] = ar[1];
+    memcpy(&ftp.payload[DATA], &file_size, sizeof(file_size));
 
     // send message: ACK( session, size=4, data=len(file) )
     mavlink_msg_file_transfer_protocol_send_struct(mavlink->getChannel(), &ftp);
@@ -80,8 +80,7 @@ MavlinkFtpManager::FileUploadService::sendData(char *buffer, int size) {
 
     ftp.target_system       = transferSysId;
     ftp.target_component    = transferCompId;
-    ftp.payload[SEQ]        = 0xff & seq;
-    ftp.payload[SEQ+1]      = 0xff & seq >> 8;
+    memcpy(&ftp.payload[SEQ], &seq, 2);
     ftp.payload[SESS]       = session; 
     ftp.payload[CODE]       = ACK; 
     ftp.payload[SIZE]       = size;
@@ -104,8 +103,7 @@ MavlinkFtpManager::FileUploadService::sendEofData() {
 
     ftp.target_system       = transferSysId;
     ftp.target_component    = transferCompId;
-    ftp.payload[SEQ]        = 0xff & seq;
-    ftp.payload[SEQ+1]      = 0xff & seq >> 8;
+    memcpy(&ftp.payload[SEQ], &seq, 2);
     ftp.payload[SESS]       = session; 
     ftp.payload[CODE]       = NAK; 
     ftp.payload[SIZE]       = 1;
@@ -127,15 +125,13 @@ MavlinkFtpManager::FileUploadService::sendAckData() {
 
     ftp.target_system       = transferSysId;
     ftp.target_component    = transferCompId;
-    ftp.payload[SEQ]        = 0xff & seq;
-    ftp.payload[SEQ+1]      = 0xff & seq >> 8;
+    memcpy(&ftp.payload[SEQ], &seq, 2);
     ftp.payload[CODE]       = ACK;
     ftp.payload[REQCODE]    = TERM;
     
     // send message: ACK( session, size=4, data=len(file) )
     mavlink_msg_file_transfer_protocol_send_struct(mavlink->getChannel(), &ftp);
 }
-
 
 //-------------------------------------------------------------
 // Class FileUploadInit 
@@ -155,7 +151,6 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::entry() {
     }
 }
 
-
 void
 MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlink_message_t *msg) { 
     mavlink_file_transfer_protocol_t ftp;
@@ -163,8 +158,10 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
 
     // message received: OpenFileRO( data[0]=filePath, size=len(filePath) )
     if (ftp.payload[CODE] == OpenFileRO) {
+
         context->transferSysId  = msg->sysid;
         context->transferCompId = msg->compid;
+        context->seq_rec = *(uint16_t *)&ftp.payload[SEQ];
 
         // Open requested file
         context->cpath = (char*)&ftp.payload[DATA];
@@ -190,7 +187,7 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
         }
         else {
             printf("file not open");
-            context->sendNakFailure(context->transferSysId, context->transferCompId, FAIL);
+            context->sendNakFailure(context->transferSysId, context->transferCompId, FNF);
             
             // initialize state machine (closes session, closes file)
             context->setState(&context->fileUploadInit);
@@ -230,6 +227,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
 
             // save last received code for later responses
             context->reqCode = ftp.payload[CODE];
+            context->seq = *(uint16_t*)&ftp.payload[SEQ];
                   
             // find file offset, read and write data
             uint32_t offset = *(uint32_t*)&ftp.payload[OFFSET];
@@ -246,12 +244,11 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
             }
         }
         else {
-            // TODO send error open file
+            context->sendNakFailure(context->transferSysId, context->transferCompId, FNF);
         }
         
     }
 }
-
 
 void
 MavlinkFtpManager::FileUploadService::FileUploadWrite::run() { 
@@ -266,11 +263,8 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::run() {
             }
             else {
                 // TODO resend Message:  ACK( session, size=4, data=len(file) )
-
-                // After last messag
-                // TODO resend Message send: NAK(session, size=1, data=EOF)
             }  
-            //++context->repeatCounter;
+            ++context->repeatCounter;
         }
         else {
             printf("max retries reached");

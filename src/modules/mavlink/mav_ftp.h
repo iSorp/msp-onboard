@@ -30,11 +30,12 @@ class MavlinkFtpManager : public MavlinkServiceManager
                 
                 // Variables
                 std::ifstream file;
-                uint file_size = 0;
-                int seq = 0;
-                int session = 0;
+                uint32_t file_size = 0;
+                uint16_t seq = 0;
+                uint16_t seq_rec = 0;
+                uint8_t session = 0;
+                uint8_t reqCode;
                 char *cpath;
-                int reqCode;
 
                 // Functions
                 void sendNakFailure(uint8_t sysid, uint8_t compid, uint8_t failure); 

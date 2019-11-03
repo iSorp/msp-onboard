@@ -27,9 +27,13 @@ const static uint8_t NAK        = 0x81;    // 129
 
 // NAK Error Information payload data[0]
 const static uint8_t FAIL       = 0x01;
+const static uint8_t FAILERNO   = 0x02;
+const static uint8_t INVDSIZE   = 0x03;
+const static uint8_t INVSESS    = 0x04;
 const static uint8_t NOSESS     = 0x05;
 const static uint8_t NEOF       = 0x06;
-const static uint8_t FNF        = 0x10;
-
-
+const static uint8_t UNKNOWN    = 0x07;
+const static uint8_t EXISTS     = 0x08;
+const static uint8_t PROTECTED  = 0x09;
+const static uint8_t FNF        = 0x0A;
 
