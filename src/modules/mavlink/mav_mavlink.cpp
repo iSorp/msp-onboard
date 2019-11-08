@@ -196,12 +196,9 @@ MavlinkUDP::init(){
 void
 MavlinkUDP::sendBytes(const uint8_t *buf, unsigned packet_len)
 {
-	size_t ret = -1;
-
-    if (network_buf_len + packet_len < sizeof(network_buf) / sizeof(network_buf[0])) {
-        memcpy(&network_buf[network_buf_len], buf, packet_len);
-        network_buf_len += packet_len;
-        ret = packet_len;
+    if (send_buf_len + packet_len < sizeof(send_buf) / sizeof(send_buf[0])) {
+        memcpy(&send_buf[send_buf_len], buf, packet_len);
+        send_buf_len += packet_len;
     }
 }
 
@@ -209,15 +206,13 @@ int
 MavlinkUDP::sendPacket()
 {
     Mavlink::sendPacket();
-
-
-	if (network_buf_len == 0) {
+	if (send_buf_len == 0) {
 		return 0;
 	}
 
-    int ret = sendto(socket_fd, network_buf, network_buf_len, 0, 
+    int ret = sendto(socket_fd, send_buf, send_buf_len, 0, 
         (struct sockaddr *)&src_addr, sizeof(src_addr));
     
-    network_buf_len = 0;
+    send_buf_len = 0;
 	return ret;
 }

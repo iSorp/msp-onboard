@@ -41,9 +41,15 @@ struct Mavlink
         virtual int sendPacket() = 0;
 
     protected:
+
+        const int timeout = 10; // ms
+        uint8_t send_buf[MAVLINK_MAX_PACKET_LEN];
+        unsigned send_buf_len=0;
+
+
         // Virtual functions
         virtual void init() = 0;
-        virtual void readMessage() = 0;
+        virtual void readMessage();
 
         // Message functions
         void handle_message(mavlink_message_t *msg);
@@ -103,14 +109,12 @@ class MavlinkUDP : public Mavlink {
         unsigned short src_port;
         unsigned short remote_port;
         const char* remote_ip;
-	    const int timeout = 10;
+
 	    struct pollfd fds[1] = {};
         uint8_t buf[2048];
         
 	    struct sockaddr_in srcaddr = {};
 	    socklen_t addrlen = sizeof(srcaddr);
-        uint8_t network_buf[MAVLINK_MAX_PACKET_LEN];
-        unsigned network_buf_len=0;
 
         // Setter/getter
         int get_socket_fd() { return socket_fd; };

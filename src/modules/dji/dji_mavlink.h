@@ -8,13 +8,21 @@
 #include "mav_mavlink.h"
 #include "mav_mission.h"
 
+
 class MavlinkDJI : public Mavlink {
+
+    typedef void 
+    (*SendDataCallback)(const uint8_t* data, uint8_t len);
+
     public: 
         MavlinkDJI() { }
         ~MavlinkDJI();
 
+        SendDataCallback sendDataCallback = nullptr; 
+
+        void setBuffer(uint8_t* data, uint8_t len);
         void beginSend() override { }
-        void sendBytes(const uint8_t *buf, unsigned packet_len) override;
+        void sendBytes(const uint8_t* buf, unsigned packet_len) override;
         int sendPacket() override;
 
     protected:
@@ -22,4 +30,6 @@ class MavlinkDJI : public Mavlink {
         void readMessage() override;
 
     private:
+        uint8_t* buffer;
+        int bufferLength;
 };

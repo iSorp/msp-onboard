@@ -12,6 +12,14 @@
 //-------------------------------------------------------------
 // Abstract class Mavlink
 //-------------------------------------------------------------
+
+void Mavlink::readMessage() {
+    // handle timeouts and resets
+    mission_manager.run();
+    ftp_manager.run();
+}
+
+
 void
 Mavlink::handle_message_heartbeat(mavlink_message_t *msg)
 {
@@ -29,12 +37,14 @@ Mavlink::handle_message(mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
 
-	case MAVLINK_MSG_ID_HEARTBEAT:
-		handle_message_heartbeat(msg);
-		break;
+        case MAVLINK_MSG_ID_HEARTBEAT:
+            handle_message_heartbeat(msg);
+            break;
 
-	default:
-		break;
+        default:
+            mission_manager.handle_message(msg);
+            ftp_manager.handle_message(msg);
+            break;
 	}
 }
 
@@ -43,8 +53,8 @@ Mavlink::handle_message(mavlink_message_t *msg)
 // Class MavlinkUDP
 //-------------------------------------------------------------
 void
-MavlinkUDP::readMessage()
-{
+MavlinkUDP::readMessage() {
+
     // check for received data 
     if (poll(&fds[0], 1, timeout) > 0) {
 
@@ -58,18 +68,10 @@ MavlinkUDP::readMessage()
         
         for (ssize_t i = 0; i < nread; i++) {
             if (mavlink_parse_char(getChannel(), buf[i], &msg, &status)) {
-    
-                // handle common messages
                 handle_message(&msg);
-
-                // handle mission data
-                mission_manager.handle_message(&msg);
-                ftp_manager.handle_message(&msg);
             }
         }
     }
     
-    // handle timeouts and resets
-    mission_manager.run();
-    ftp_manager.run();
+    Mavlink::readMessage();
 }

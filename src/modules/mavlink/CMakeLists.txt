@@ -9,3 +9,5 @@ set (mavlink_src
 add_library(mavlink "${mavlink_src}")
 
 target_include_directories (mavlink PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+#target_link_libraries(mavlink PRIVATE controller)

@@ -1,7 +1,8 @@
 #pragma once
 #include <iostream>
 #include <fstream>
-#include "mavlink_bridge_header.h"
+
+#include "mavlink_types.h"
 #include "mav_service.h"
 #include "mav_ftp_protocol.h"
 

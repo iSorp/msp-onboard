@@ -1,5 +1,10 @@
 #include <stdio.h>
-#include <string.h>
+//#include <string.h>
+#include <iostream>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <future> 
 
 #include "mav_ftp.h"
 #include "mav_mavlink.h"
@@ -60,6 +65,7 @@ MavlinkFtpManager::FileUploadService::sendOpenSession() {
     ftp.target_system       = transferSysId;
     ftp.target_component    = transferCompId;
 
+    //reinterpret_cast
     memcpy(&ftp.payload[SEQ], &seq, 2);
     ftp.payload[SESS]       = session; 
     ftp.payload[CODE]       = ACK; 
@@ -200,6 +206,19 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
 // Class FileUploadWrite 
 //-------------------------------------------------------------
 
+std::string fetchDataFromDB(std::string recvdData)
+{
+    /*context->file.seekg(offset); 
+    if (context->file) {
+        context->file.read(buffer, ftp.payload[SIZE]);
+        int size = context->file.gcount();
+        context->sendData(buffer, size);
+    }*/
+ 
+	//Do stuff like creating DB Connection and fetching Data
+	return "DB_" + recvdData;
+}
+
 void
 MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavlink_message_t *msg) { 
     mavlink_file_transfer_protocol_t ftp;
@@ -231,6 +250,11 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
                   
             // find file offset, read and write data
             uint32_t offset = *(uint32_t*)&ftp.payload[OFFSET];
+
+            //std::future<std::string> resultFromDB = std::async(std::launch::async, fetchDataFromDB, "Data"); 
+
+
+
             context->file.seekg(offset); 
             if (context->file) {
                 context->file.read(buffer, ftp.payload[SIZE]);
@@ -250,6 +274,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
     }
 }
 
+ 
 void
 MavlinkFtpManager::FileUploadService::FileUploadWrite::run() { 
 
