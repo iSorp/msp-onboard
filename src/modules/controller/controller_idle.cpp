@@ -1,24 +1,27 @@
-
 #include "controller.h"
-
-
-
 
 //-------------------------------------------------------------
 // Class Idle 
 //-------------------------------------------------------------
 void
-FlightController::Idle::entry() {
+MspController::Idle::entry() {
 
 }
 
-void
-FlightController::Idle::missionStart() {
-    // TODO verify mission
-
-}
-
-void
-FlightController::Idle::returnToOrigin() {
-    // TODO start command
+EResult
+MspController::Idle::cmdExecute(uint16_t command) {
+    switch (command)
+    {
+    case MAV_CMD_MISSION_START:
+        context->setState(&context->stateMission);
+        return context->stateMission.missionStart();
+        break;
+    case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+        context->setState(&context->stateCommand);
+        return context->stateCommand.cmdExecute(command);
+        break;
+    default:
+        return EResult::INVALID;
+        break;
+    }
 }

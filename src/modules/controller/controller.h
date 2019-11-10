@@ -1,43 +1,39 @@
 #pragma once
 
-#include "mavlink.h"
+#include "defines.h"
+#include "mav_mavlink.h"
 
-enum class EState : uint32_t{
-    MISSION_EXISTS  = (1 << 0),
-    MISSION_ACTIVE  = (1 << 1),
-    MISSION_RUNNING = (1 << 2)
-};
-
-class FlightController {
+class MspController {
     
+    typedef void (*VehicleCmdCallback)(EVehicleCmd cmd, void* data, size_t len);
+
+    enum class EState : uint32_t{
+        MISSION_EXISTS  = (1 << 0),
+        MISSION_ACTIVE  = (1 << 1),
+        MISSION_RUNNING = (1 << 2)
+    };
+
     struct State;
 
     public:
-        static FlightController *getInstance();
+        static MspController *getInstance();
 
-        void initialize();
+        VehicleCmdCallback vehicleCmd = nullptr;
+        
+        void initialize(Mavlink* mavlink);
+        
+        // user commands
+        EResult cmdExecute(uint16_t command);
+        EResult handleMessage(uint16_t message);
 
-
-        // Mission commands
-        void missionStart(){}
-        void missionStop(){}
         void missionActivate(){}
-        void missionValidate(){}
-        void missionDelete(){}
-        void missionAddItem(mavlink_mission_item_t wp){}
-
-        // Drone commands
-        void cmdReturnToOrigin(){}
-        void cmdTakeOff(){}
-        void cmdToLand(){}
+        void missionAddItem(mavlink_mission_item_t wp);
 
         EState getStateFlag() {
             return drone_state;
         }
 
-       
-        // Functions 
-        
+        // State functions 
         State* getState() {return state; };
 
         void setState(State *_state) {
@@ -46,85 +42,99 @@ class FlightController {
             state->entry();
         };
 
+    protected:
+        Mavlink* mavlink;
+
     private:
-        FlightController() : 
+        MspController() : 
             stateInit(this),
             stateIdle(this),
-            stateWpPending(this),
-            stateWpReached(this),
-            stateMisionDone(this),
-            stateToOrigin(this)
+            stateMission(this),
+            stateCommand(this)
         {}
 
-        static FlightController *instance;
+        static MspController *instance;
 
         EState drone_state;
         State *state;
-
+        std::vector<mavlink_mission_item_t> missionItems;
     
-        void setStateFlag(EState flag) {
-        
-        }
+        void setStateFlag(EState flag) {}
+
+        // functions
+        EResult missionDelete();
+
 
         struct State {
             public:
-                State(FlightController *context) : context(context) {};
+                State(MspController *context) : context(context) {};
                 State() {}
 
-                FlightController *context;
+                MspController *context;
 
-                virtual void entry() {};
-                virtual void exit() {};
+                virtual EResult cmdExecute(uint16_t command){
+                    return EResult::FAILED;
+                }
 
-                virtual void missionStart(){}
-                virtual void missionStop(){}
-                virtual void returnToOrigin(){}
+                // State handling functions
+                virtual void entry(){};
+                virtual void exit(){};
+
+
+                // Mission commands
+                virtual EResult missionStart(){}
+                virtual EResult missionStop(){}
+        
+                // Drone commands
+                virtual EResult returnToOrigin(){}
+                virtual EResult takeOff(){}
+                virtual EResult land(){}
+
+                // commands from drone
+                virtual void vehicleNotification(EVehicleNotification notification){}
+
+
         };
 
         class Init: public State {
             public:
-                Init(FlightController *context) : State(context) { };
+                Init(MspController *context) : State(context) { };
                 void entry() override;
         };
 
         class Idle : public State {
             public:
-                Idle(FlightController *context) : State(context) {};
+                Idle(MspController *context) : State(context) {};
                 void entry() override;
-                void missionStart() override;
-                void returnToOrigin() override;
+                EResult cmdExecute(uint16_t command) override;
         };
 
-        class WPPending : public State {
+        class Mission : public State {
+            typedef void 
+                (*SendDataCallback)(uint8_t* data, uint8_t len);
+
             public:
-                WPPending(FlightController *context) : State(context) { };
+                Mission(MspController *context) : State(context) { };
                 void entry() override;
+                void exit() override;
+                void vehicleNotification(EVehicleNotification notification) override;
+                EResult cmdExecute(uint16_t command) override;
+                EResult missionStart() override;
+                EResult missionStop() override;
+
+                void sendMissionItemReached(int seq);
         };
- 
-        class WPReached : public State {
+
+        class Command : public State {
             public:
-                WPReached(FlightController *context) : State(context) { };
-                void entry() override;
+                Command(MspController *context) : State(context) {};
+                void vehicleNotification(EVehicleNotification notification);
+                EResult cmdExecute(uint16_t command) override;
         };
-
-        class MissionDone : public State {
-            public:
-                MissionDone(FlightController *context) : State(context) {};
-                void entry() override;
-        };
-
-        class ToOrigin : public State {
-            public:
-                ToOrigin(FlightController *context) : State(context) {};
-        };
-
-
 
         Init stateInit;
         Idle stateIdle;
-        WPPending stateWpPending;
-        WPReached stateWpReached;
-        MissionDone stateMisionDone;
-        ToOrigin stateToOrigin;
+        Mission stateMission;
+        Command stateCommand;
 
 };

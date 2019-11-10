@@ -43,12 +43,10 @@
 #define MAVLINK_BRIDGE_HEADER_H
 
 #define MAVLINK_NO_CONVERSION_HELPERS
-
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
-
 #define MAVLINK_START_UART_SEND mavlink_start_uart_send
 #define MAVLINK_END_UART_SEND mavlink_end_uart_send
 

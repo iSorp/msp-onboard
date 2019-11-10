@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdlib.h>
 #include <poll.h>
 #include <sys/socket.h>
@@ -11,23 +13,25 @@
 
 class MavlinkDJI : public Mavlink {
 
+    // Typ for callback function which the data actually sends to the receiver
     typedef void 
-    (*SendDataCallback)(const uint8_t* data, uint8_t len);
+    (*SendDataCallback)(uint8_t* data, uint8_t len);
 
     public: 
         MavlinkDJI() { }
-        ~MavlinkDJI();
+        
+        ~MavlinkDJI() {}
 
         SendDataCallback sendDataCallback = nullptr; 
 
-        void setBuffer(uint8_t* data, uint8_t len);
+        void setBuffer(uint8_t* data, size_t len);
         void beginSend() override { }
         void sendBytes(const uint8_t* buf, unsigned packet_len) override;
         int sendPacket() override;
 
     protected:
-        void init() override;
-        void readMessage() override;
+        void init() override { };
+        void handleMessages() override;
 
     private:
         uint8_t* buffer;

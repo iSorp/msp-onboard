@@ -2,89 +2,86 @@
 
 
 //-------------------------------------------------------------
-// Class StateMission 
+// Class Mission 
 //-------------------------------------------------------------
 void 
-FlightController::StateMission::entry() {
-    // dji request for upload mission item and start mission
+MspController::Mission::entry() {
+    // TODO some initialization
     
 }
 
+EResult 
+MspController::Mission::cmdExecute(uint16_t command){
+    switch (command)
+    {
+    default:
+        return EResult::INVALID;
+        break;
+    }
+}
+
+
+EResult 
+MspController::Mission::missionStart() {
+
+    void* data;
+    size_t len;
+
+    // Upload mission data
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::UPLOAD_WAY_POINTS, data, len);
+
+    // Start mission
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::MISSION_START, NULL, 0);
+}
+
+EResult 
+MspController::Mission::missionStop() {
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::MISSION_STOP, NULL, 0);
+}
 
 void 
-FlightController::StateMission::djiCallbackWpReached() {
-    // read DJI telemetrie data
+MspController::Mission::vehicleNotification(EVehicleNotification notification) {
 
-    // read sensor data
+    if (notification == EVehicleNotification::WAY_POINT_REACHED) {
+        sendMissionItemReached(1);
 
-    // Combine and stor data
+        // read DJI telemetrie data
 
-    // check for next WP
+        // read sensor data
 
+        // Combine and stor data
+
+        // check for next WP
+
+        // resume mission
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::MISSION_RESUME, NULL, 0);
+
+        // if option to origin -> execute
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::RETURN_TO_ORIGIN, NULL, 0);
+
+        // otherwise hower and set idle state
+        context->setState(&context->stateIdle);
+    }
+}
+
+void 
+MspController::Mission::exit() {
     // if all WP are done, end mission
-
-    // Mavlink request for message Mission done
-
-    // if option to origin -> execute
-
-    // otherwise hower and set idle state
-    context->setState(&context->stateIdle);
+    sendMissionItemReached(-1);
 }
 
 void 
-FlightController::StateMission::exit() {
-    
+MspController::Mission::sendMissionItemReached(int seq) {
+
+    Mavlink* mavlink = MspController::getInstance()->mavlink;
+
+    // Send mission item reached
+	mavlink_mission_item_reached_t wp_reached;
+	wp_reached.seq = seq;
+	mavlink_msg_mission_item_reached_send_struct(mavlink->getChannel(), &wp_reached);
+
+    // Send current mission item
+    mavlink_mission_current_t wpc;
+    wpc.seq = seq;
+    mavlink_msg_mission_current_send_struct(mavlink->getChannel(), &wpc);
 }
-
-
-
-//-------------------------------------------------------------
-// Class WPPending 
-//-------------------------------------------------------------
-void 
-FlightController::WPPending::entry() {
-    // transmit next WP to OSDK
-    
-}
-
-void 
-FlightController::WPPending::run() {
-    // wait for messages
-
-    // if WP reached change state
-    context->setState(&context->stateWpReached)
-}
-
-//-------------------------------------------------------------
-// Class WPReached 
-//-------------------------------------------------------------
-void 
-FlightController::WPReached::entry() {
-    // read DJI telemetrie data
-
-    // read sensor data
-
-    // Combine and stor data
-
-    // check for next WP
-    context->setState(&context->stateWpPending);
-
-
-    // if all WP are done, end mission
-    context->setState(&context->stateMisionDone);
-}
-
-
-//-------------------------------------------------------------
-// Class MissionDone 
-//-------------------------------------------------------------
-void 
-FlightController::MissionDone::entry() {
-    // Mavlink request for message Mission done
-
-    // if option to origin -> execute
-
-    // otherwise hower and set idle state
-    context->setState(&context->stateIdle);
-}
-

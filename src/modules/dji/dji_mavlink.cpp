@@ -1,10 +1,14 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <mutex>
+#include "defines.h"
+#include "mav_mavlink.h"
+#include "dji_mavlink.h"
+
 #include "helper.h"
 #include "mav_mavlink.h"
 #include "dji_mavlink.h"
 
+
+std::mutex message_lock;
 
 
 //-------------------------------------------------------------
@@ -26,7 +30,7 @@ int
 MavlinkDJI::sendPacket()
 {
     Mavlink::sendPacket();
-	if (send_buf_len == 0) {
+	if (send_buf_len == 0 || sendDataCallback == NULL) {
 		return 0;
 	}
 
@@ -35,4 +39,38 @@ MavlinkDJI::sendPacket()
 
     send_buf_len = 0;
 	return ret;
+}
+
+void
+MavlinkDJI::handleMessages()
+{
+    message_lock.lock();
+
+    if (bufferLength > 0)
+    {
+        mavlink_message_t msg;
+        mavlink_status_t status;
+
+        for (ssize_t i = 0; i < bufferLength; i++) {
+            if (mavlink_parse_char(getChannel(), buffer[i], &msg, &status)) {
+                handle_message(&msg); 
+            }
+        }
+        delete this->buffer;
+    }
+    Mavlink::runServices();
+    
+    message_lock.unlock();
+    usleep(timeout*1000);
+}
+
+void MavlinkDJI::setBuffer(uint8_t* data, size_t len){
+
+    message_lock.lock();
+
+    bufferLength = len;
+    this->buffer = new uint8_t[len];
+    memcpy(this->buffer, data, len); 
+
+    message_lock.unlock();
 }

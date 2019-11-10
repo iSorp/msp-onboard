@@ -1,20 +1,12 @@
-#include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <sys/time.h> 
-#include <time.h>
-#include <arpa/inet.h>
 #include <list> 
 #include <iterator> 
 
 #include "mav_mavlink.h"
 #include "helper.h"
 
-
 static std::list<Mavlink*> instanceList;
+static std::mutex send_lock;
 
 //-------------------------------------------------------------
 // Mavlink helper interface
@@ -24,30 +16,37 @@ mavlink_system_t mavlink_system = {
 	COMPID
 };
 
-void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
-{
-	Mavlink *m = Mavlink::get_instance(chan);
 
-	if (m != nullptr) {
-		m->sendBytes(ch, length);
-	}
-}
-
+/****** -> send_lock.lock();*****/
 void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 {
+	send_lock.lock();
+
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
 		(void)m->beginSend();
 	}
 }
-
 void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 {
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
 		(void)m->sendPacket();
+	}
+	send_lock.unlock();
+}
+/****** -> send_lock.unlock();*****/
+
+
+
+void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
+{
+	Mavlink *m = Mavlink::get_instance(chan);
+
+	if (m != nullptr) {
+		m->sendBytes(ch, length);
 	}
 }
 
@@ -102,7 +101,7 @@ Mavlink::run()
 {
     // Mavlink task loop
     while (!stopThread) {
-        readMessage();
+        handleMessages();
     }
 }
 
@@ -148,71 +147,74 @@ Mavlink::sendPacket()
 }
 
 
-//-------------------------------------------------------------
-// Class MavlinkUDP
-//-------------------------------------------------------------
-MavlinkUDP::~MavlinkUDP() {
-    if (socket_fd >= 0) {    
-		close(socket_fd);
-		socket_fd = -1;
+
+
+void Mavlink::runServices() {
+    // handle timeouts and resets
+    command_manager.run();
+    mission_manager.run();
+    ftp_manager.run();
+
+
+    if (!sendQueue.empty()){
+        queue_message_t qmsg = sendQueue.front();
+        sendQueue.pop();
+
+        mavlink_mission_ack_t wpa;
+        wpa.target_system    = 1;
+        wpa.target_component = 1;
+        wpa.type = 1;
+
+        mavlink_msg_mission_ack_send_struct(getChannel(), &wpa);
+
+        //mavlink_msg_to_send_buffer(send_buf, &qmsg.msg);
+        //mavlink_send_uart_bytes(getChannel(), send_buf, qmsg.len);
+    }
+}
+
+
+void
+Mavlink::handle_message_heartbeat(mavlink_message_t *msg)
+{
+	if (getChannel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
+		mavlink_heartbeat_t hb;
+		mavlink_msg_heartbeat_decode(msg, &hb);
+
+        // response heartbeat
+        mavlink_msg_heartbeat_send(getChannel(), MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
 	}
 }
 
 void
-MavlinkUDP::init(){
-  memset(&loc_addr, 0, sizeof(loc_addr));
-	loc_addr.sin_family = AF_INET;
-	loc_addr.sin_addr.s_addr = INADDR_ANY;
-	loc_addr.sin_port = htons(src_port);
+Mavlink::handle_message(mavlink_message_t *msg)
+{
+	switch (msg->msgid) {
 
-    if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		exit(EXIT_FAILURE);
+        case MAVLINK_MSG_ID_HEARTBEAT:
+            handle_message_heartbeat(msg);
+            break;
+        default:
+            command_manager.handle_message(msg);
+            mission_manager.handle_message(msg);
+            ftp_manager.handle_message(msg);
+            break;
 	}
-
-	if (-1 == bind(socket_fd,(struct sockaddr *)&loc_addr, sizeof(struct sockaddr)))
-    {
-		perror("error bind failed");
-		close(socket_fd);
-		exit(EXIT_FAILURE);
-    } 
-
-	if (fcntl(socket_fd, F_SETFL, O_NONBLOCK | O_ASYNC) < 0)
-    {
-		fprintf(stderr, "error setting nonblocking: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(EXIT_FAILURE);
-    }
-
-    memset(&src_addr, 0, sizeof(src_addr));
-    src_addr.sin_family = AF_INET;
-    inet_aton(remote_ip, &src_addr.sin_addr);
-    src_addr.sin_port = htons(remote_port);
-
-    // add the UDP Socket to the event loop file descriptor 
-    fds[0].fd = get_socket_fd();
-    fds[0].events = POLLIN;
 }
 
+/*
+*   Queues a message to send
+*/
 void
-MavlinkUDP::sendBytes(const uint8_t *buf, unsigned packet_len)
-{
-    if (send_buf_len + packet_len < sizeof(send_buf) / sizeof(send_buf[0])) {
-        memcpy(&send_buf[send_buf_len], buf, packet_len);
-        send_buf_len += packet_len;
-    }
+Mavlink::queueSendMessage(mavlink_message_t msg, size_t len) {
+    // TODO add the the message and callback to a queue
+    // Try to send the message and notify the original sender by
+    // calling errorCallback iff a error onccures
+    queue_message_t qmsg = {msg, len};
+    sendQueue.push(qmsg);
 }
 
-int
-MavlinkUDP::sendPacket()
-{
-    Mavlink::sendPacket();
-	if (send_buf_len == 0) {
-		return 0;
-	}
 
-    int ret = sendto(socket_fd, send_buf, send_buf_len, 0, 
-        (struct sockaddr *)&src_addr, sizeof(src_addr));
-    
-    send_buf_len = 0;
-	return ret;
+void 
+Mavlink::setCmdResult(EResult result) {
+	command_manager.setCmdResult(result);
 }

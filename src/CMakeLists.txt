@@ -53,13 +53,13 @@ include_directories("${PROJECT_SOURCE_DIR}")
 # submodules
 add_subdirectory(modules/mavlink)
 add_subdirectory(modules/dji)
-#add_subdirectory(modules/controller)
+add_subdirectory(modules/controller)
 
 
 # executable
 add_executable(msp-onboard main.cpp)
 target_link_libraries(msp-onboard mavlink)
-#target_link_libraries(msp-onboard controller)
+target_link_libraries(msp-onboard controller)
 
 if (DJI_OSDK)
     target_link_libraries(msp-onboard dji djiosdk-core)

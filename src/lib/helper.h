@@ -1,8 +1,15 @@
-#ifndef HELPER_HEADER_H
-#define HELPER_HEADER_H
+#pragma once
 
 #include <stdint.h>
 #include <sys/time.h>
+#include <type_traits>
+#include <iostream>
+
+// https://www.tutorialspoint.com/cplusplus-equivalent-of-instanceof
+template<typename Base, typename T>
+inline bool instanceof(const T*) {
+   return std::is_base_of<Base, T>::value;
+}
 
 
 /*******************************************************************************
@@ -21,8 +28,6 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-
-
 // QNX timer version 
 #if (defined __QNX__) | (defined __QNXNTO__)
 inline uint64_t microsSinceEpoch()
@@ -53,6 +58,6 @@ inline uint64_t microsSinceEpoch()
 #endif
 
 
-#endif /* HELPER_HEADER_H */
+
 
 

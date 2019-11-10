@@ -1,5 +1,6 @@
 #pragma once
 
+#include <typeinfo>
 #include "defines.h"
 #include "mavlink_types.h"
 
@@ -45,7 +46,7 @@ struct MavlinkService {
 
         void setState(ServiceStateInterface *_state) {
             _state->exit();
-            state = _state; 
+            state = _state;
             state->entry();
         };
 

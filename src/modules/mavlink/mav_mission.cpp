@@ -1,14 +1,12 @@
 #include <stdio.h>
 #include "mav_mission.h"
 #include "mav_mavlink.h"
-//#include "controller.h"
+#include "controller.h"
 #include "helper.h"
 
 //-------------------------------------------------------------
 // Class MavlinkMissionManager
 //-------------------------------------------------------------
-
-
 void
 MavlinkMissionManager::run() {
     missionDownloadService.getState()->run();
@@ -19,8 +17,14 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 {
     switch (msg->msgid) {
 
+        // Start mission item upload (Creates a new mission)
         case MAVLINK_MSG_ID_MISSION_COUNT:
             missionDownloadService.setState(&missionDownloadService.missionDownloadInit);
+            break;
+
+        // deletes the current mission
+        case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
+            MspController::getInstance()->handleMessage(MAVLINK_MSG_ID_MISSION_CLEAR_ALL);
             break;
 
         default:
@@ -29,6 +33,14 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
     
     missionDownloadService.getState()->handleMessage(msg);
 }
+
+
+
+
+/****************************************************************/
+/*****************classes for mission uploads********************/
+/****************************************************************/
+
 
 //-------------------------------------------------------------
 // Class MissionDownloadService 
@@ -75,7 +87,7 @@ MavlinkMissionManager::MissionDownloadService::handleMissionItem(const mavlink_m
 	mavlink_msg_mission_item_decode(msg, &wp);
 
     // -> Save the mission item <-
-    //FlightController::getInstance()->missionAddItem(wp);
+    MspController::getInstance()->missionAddItem(wp);
 }
 
 void
@@ -108,7 +120,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::handleMessag
     if (msg->msgid == MAVLINK_MSG_ID_MISSION_COUNT) { 
         
         // Send error if a mission is active (stop mission and delete mission)
-       /* if (false) {//FlightController::getInstance()->missionState() == EMissionState::MISSION_ACTIVE) {
+        if (false) {//MspController::getInstance()->missionState() == EMissionState::MISSION_ACTIVE) {
             context->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ERROR);
             context->setState(&context->missionDownloadInit);
         }
@@ -117,7 +129,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::handleMessag
             context->handleMissionCount(msg);
             context->handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
             context->setState(&context->missionDownloadItem);
-        }*/
+        }
     }
 }
 
@@ -189,7 +201,7 @@ void
 MavlinkMissionManager::MissionDownloadService::MissionDownloadEnd::entry() { 
     
     // Activate new mission
-    //FlightController::getInstance()->missionActivate();
+    MspController::getInstance()->missionActivate();
 
     context->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ACCEPTED);
     context->setState(&context->missionDownloadInit);
