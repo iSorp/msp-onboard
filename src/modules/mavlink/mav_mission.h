@@ -9,19 +9,23 @@ class MavlinkMissionManager : public MavlinkServiceManager
 {
     public:
         MavlinkMissionManager(Mavlink *mavlink) : MavlinkServiceManager(mavlink),
-            missionDownloadService(mavlink) { }
+            missionDownloadService(this, mavlink) { }
 
         void handle_message(const mavlink_message_t *msg) override;
         void run() override;
-        
+        void sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type);
+
         void checkActiveMission();
         void activateMission();
+        void missionDelete(const mavlink_message_t *msg);
 
     private:      
 
         class MissionDownloadService : public MavlinkService {
             public:
-                MissionDownloadService(Mavlink *mavlink) : MavlinkService(mavlink),
+                MissionDownloadService(MavlinkMissionManager* manager, Mavlink *mavlink) : 
+                    manager(manager),
+                    MavlinkService(mavlink),
                     missionDownloadInit(this), 
                     missionDownloadItem(this), 
                     missionDownloadEnd(this)
@@ -38,8 +42,6 @@ class MavlinkMissionManager : public MavlinkServiceManager
                 void handleMissionItem(const mavlink_message_t *msg);
                 void handleMissionAck(const mavlink_message_t *msg);
                 void handleMissionRequest(uint8_t sysid, uint8_t compid, uint16_t seq);
-                void sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type);
-
                 
                 class MissionDownloadInit : public ServiceState<MissionDownloadService> {
                     public:
@@ -69,6 +71,9 @@ class MavlinkMissionManager : public MavlinkServiceManager
                 MissionDownloadInit missionDownloadInit;
                 MissionDownloadItem missionDownloadItem;
                 MissionDownloadEnd missionDownloadEnd;
+
+            private:
+                MavlinkMissionManager* manager;
         };     
 
         MissionDownloadService missionDownloadService;

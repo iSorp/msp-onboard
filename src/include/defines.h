@@ -17,35 +17,36 @@
 
 
 
-
 enum EVehicleNotification {
-    WAY_POINT_REACHED,
-    VEHICLE_LANDED,
-
+    MSP_VHC_WAY_POINT_REACHED,
+    MSP_VHC_LANDED,
+    MSP_VHC_TAKEOFF,
 };
 
 enum EVehicleCmd {
+    MSP_CMD_RETURN_TO_ORIGIN,
+    MSP_CMD_TAKEOFF,
+    MSP_CMD_LAND,
 
-    MISSION_START,
-    MISSION_PAUSE,
-    MISSION_RESUME,
-    MISSION_STOP,
 
-    UPLOAD_WAY_POINTS,
+    MSP_CMD_MISSION_START,
+    MSP_CMD_MISSION_PAUSE,
+    MSP_CMD_MISSION_RESUME,
+    MSP_CMD_MISSION_STOP,
 
-    RETURN_TO_ORIGIN
+    MSP_CMD_UPLOAD_WAY_POINTS,
 };
 
 enum EResult {
     // Command successful executed 
-    SUCCESS,
+    MSP_SUCCESS,
     // Invalid command (not available)
-    INVALID,
+    MSP_INVALID,
     // Controller (state) is busy, command can not be executed
-    BUSY,
+    MSP_BUSY,
     // Command execution failed (wrong state)
-    FAILED,
+    MSP_FAILED,
     // Command in progress, ends later
-    PROGRESS
+    MSP_PROGRESS
 };
 

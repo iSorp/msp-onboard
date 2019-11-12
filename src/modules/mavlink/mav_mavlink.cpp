@@ -146,74 +146,26 @@ Mavlink::sendPacket()
     return 0;
 }
 
-
-
-
 void Mavlink::runServices() {
     // handle timeouts and resets
+    message_manager.run();
     command_manager.run();
     mission_manager.run();
     ftp_manager.run();
-
-
-    if (!sendQueue.empty()){
-        queue_message_t qmsg = sendQueue.front();
-        sendQueue.pop();
-
-        mavlink_mission_ack_t wpa;
-        wpa.target_system    = 1;
-        wpa.target_component = 1;
-        wpa.type = 1;
-
-        mavlink_msg_mission_ack_send_struct(getChannel(), &wpa);
-
-        //mavlink_msg_to_send_buffer(send_buf, &qmsg.msg);
-        //mavlink_send_uart_bytes(getChannel(), send_buf, qmsg.len);
-    }
-}
-
-
-void
-Mavlink::handle_message_heartbeat(mavlink_message_t *msg)
-{
-	if (getChannel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
-		mavlink_heartbeat_t hb;
-		mavlink_msg_heartbeat_decode(msg, &hb);
-
-        // response heartbeat
-        mavlink_msg_heartbeat_send(getChannel(), MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
-	}
 }
 
 void
 Mavlink::handle_message(mavlink_message_t *msg)
 {
-	switch (msg->msgid) {
-
-        case MAVLINK_MSG_ID_HEARTBEAT:
-            handle_message_heartbeat(msg);
-            break;
-        default:
-            command_manager.handle_message(msg);
-            mission_manager.handle_message(msg);
-            ftp_manager.handle_message(msg);
-            break;
-	}
+    message_manager.handle_message(msg);
+    command_manager.handle_message(msg);
+    mission_manager.handle_message(msg);
+    ftp_manager.handle_message(msg);
 }
 
 /*
-*   Queues a message to send
+*   Set command result after command returned "MSP_PROGRESS"
 */
-void
-Mavlink::queueSendMessage(mavlink_message_t msg, size_t len) {
-    // TODO add the the message and callback to a queue
-    // Try to send the message and notify the original sender by
-    // calling errorCallback iff a error onccures
-    queue_message_t qmsg = {msg, len};
-    sendQueue.push(qmsg);
-}
-
-
 void 
 Mavlink::setCmdResult(EResult result) {
 	command_manager.setCmdResult(result);

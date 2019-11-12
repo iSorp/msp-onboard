@@ -41,7 +41,7 @@ class MavlinkCommandManager : public MavlinkServiceManager
 
                 // Functions
                 void sendCmdAck(uint16_t cmd, uint8_t result);
-                void handleCmdResult(EResult result, uint16_t command);
+                void handleCmdErrorResultAndInit(EResult result, uint16_t command);
 
                 class CommandInit : public ServiceState<CommandService> {
                     public:

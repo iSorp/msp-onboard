@@ -51,8 +51,12 @@ include_directories("${COMMMON_LIB_HEADERS}")
 include_directories("${PROJECT_SOURCE_DIR}")
 
 # submodules
+
+
 add_subdirectory(modules/mavlink)
-add_subdirectory(modules/dji)
+if (DJI_OSDK)
+    add_subdirectory(modules/dji)
+endif(DJI_OSDK)
 add_subdirectory(modules/controller)
 
 

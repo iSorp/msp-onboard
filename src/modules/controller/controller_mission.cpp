@@ -1,6 +1,5 @@
 #include "controller.h"
 
-
 //-------------------------------------------------------------
 // Class Mission 
 //-------------------------------------------------------------
@@ -9,40 +8,66 @@ MspController::Mission::entry() {
     // TODO some initialization
     
 }
-
-EResult 
-MspController::Mission::cmdExecute(uint16_t command){
-    switch (command)
-    {
-    default:
-        return EResult::INVALID;
-        break;
-    }
+void 
+MspController::Mission::exit() {
+    // if all WP are done, end mission
+    sendMissionItemReached(-1);
 }
 
+EResult 
+MspController::Mission::cmdExecute(uint16_t command, mavlink_command_long_t cmd){
+    EResult res = EResult::MSP_FAILED;
+    switch (command)
+    {
+    case MAV_CMD_MISSION_START:
+        res = missionStart();
+        break;
+    case MAV_CMD_DO_PAUSE_CONTINUE:
+        res = missionPauseContinue(cmd.param1 == 0);
+        break;
+    default:
+        res =  EResult::MSP_INVALID;
+        break;
+    }
+    return res;
+}
 
 EResult 
 MspController::Mission::missionStart() {
 
-    void* data;
-    size_t len;
-
     // Upload mission data
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::UPLOAD_WAY_POINTS, data, len);
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS, NULL, 0);
 
     // Start mission
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MISSION_START, NULL, 0);
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_START, NULL, 0);
+
+    return EResult::MSP_SUCCESS;
+}
+
+EResult 
+MspController::Mission::missionPauseContinue(bool pause) {
+
+    if (pause) {
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
+    }
+    else {
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
+    }    
+
+    return EResult::MSP_SUCCESS;
 }
 
 EResult 
 MspController::Mission::missionStop() {
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MISSION_STOP, NULL, 0);
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_STOP, NULL, 0);
+
+    return EResult::MSP_SUCCESS;
 }
 
 void 
 MspController::Mission::vehicleNotification(EVehicleNotification notification) {
 
-    if (notification == EVehicleNotification::WAY_POINT_REACHED) {
+    if (notification == EVehicleNotification::MSP_VHC_WAY_POINT_REACHED) {
         sendMissionItemReached(1);
 
         // read DJI telemetrie data
@@ -54,10 +79,10 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification) {
         // check for next WP
 
         // resume mission
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MISSION_RESUME, NULL, 0);
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
 
         // if option to origin -> execute
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::RETURN_TO_ORIGIN, NULL, 0);
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
 
         // otherwise hower and set idle state
         context->setState(&context->stateIdle);
@@ -65,20 +90,9 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification) {
 }
 
 void 
-MspController::Mission::exit() {
-    // if all WP are done, end mission
-    sendMissionItemReached(-1);
-}
-
-void 
 MspController::Mission::sendMissionItemReached(int seq) {
 
     Mavlink* mavlink = MspController::getInstance()->mavlink;
-
-    // Send mission item reached
-	mavlink_mission_item_reached_t wp_reached;
-	wp_reached.seq = seq;
-	mavlink_msg_mission_item_reached_send_struct(mavlink->getChannel(), &wp_reached);
 
     // Send current mission item
     mavlink_mission_current_t wpc;

@@ -57,7 +57,8 @@ int main(int argc, char** argv) {
 #endif
   
     // Initialize mavlink connection
-    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+     MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
     std::thread threadMavlinkUDP = mavlinkUDP->start();
 
     // Initialize the controller (DJI communication, sensors)

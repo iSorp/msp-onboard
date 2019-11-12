@@ -17,8 +17,13 @@ MavlinkCommandManager::run() {
 void
 MavlinkCommandManager::handle_message(const mavlink_message_t *msg)
 {
-    if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG || msg->msgid == MAVLINK_MSG_ID_COMMAND_INT) {
+    // command int not supported
+    if(msg->msgid == MAVLINK_MSG_ID_COMMAND_INT) {
+        commandService.sendCmdAck(0, MAV_RESULT_UNSUPPORTED);
+        return;
+    }
 
+    if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
         // Accept command request only if no command execution is pending
         if (typeid(*commandService.getState()) == typeid(MavlinkCommandManager::CommandService::CommandInit))
         {
@@ -56,19 +61,19 @@ MavlinkCommandManager::CommandService::sendCmdAck(uint16_t cmd, uint8_t result)
 }
 
 void
-MavlinkCommandManager::CommandService::handleCmdResult(EResult result, uint16_t command)
+MavlinkCommandManager::CommandService::handleCmdErrorResultAndInit(EResult result, uint16_t command)
 {
     switch (result)
     {
-    case EResult::INVALID:
+    case EResult::MSP_INVALID:
         sendCmdAck(command, MAV_RESULT_UNSUPPORTED);
         setState(&commandInit);
         break;
-    case EResult::BUSY:
+    case EResult::MSP_BUSY:
         sendCmdAck(command, MAV_RESULT_TEMPORARILY_REJECTED);
         setState(&commandInit);
         break;
-    case EResult::FAILED:
+    case EResult::MSP_FAILED:
         sendCmdAck(command, MAV_RESULT_FAILED);
         setState(&commandInit);
         break;
@@ -90,33 +95,23 @@ MavlinkCommandManager::CommandService::CommandInit::entry() {
 void 
 MavlinkCommandManager::CommandService::CommandReceive::handleMessage(const mavlink_message_t *msg) {
 
-    uint16_t command = 0;
-    if (msg->msgid == MAVLINK_MSG_ID_COMMAND_INT) {
-        mavlink_command_int_t cmd;
-        mavlink_msg_command_int_decode(msg, &cmd);
-        command = cmd.command;
-    }
-
-    if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
-        mavlink_command_long_t cmd;
-        mavlink_msg_command_long_decode(msg, &cmd);
-        command = cmd.command;
-    }
+    mavlink_command_long_t cmd;
+    mavlink_msg_command_long_decode(msg, &cmd);
 
     // Execute command
-    EResult res = MspController::getInstance()->cmdExecute(command);
+    EResult res = MspController::getInstance()->cmdExecute(cmd.command, cmd);
     switch (res)
     {
-    case EResult::SUCCESS:
+    case EResult::MSP_SUCCESS:
         context->setState(&context->commandEnd);
         break;
-    case EResult::PROGRESS:
+    case EResult::MSP_PROGRESS:
         // command is finished later
         context->setState(&context->commandProgress);
         break;
 
     default:
-        context->handleCmdResult(res, command);
+        context->handleCmdErrorResultAndInit(res, cmd.command);
         break;
     }
 }
@@ -134,11 +129,11 @@ MavlinkCommandManager::CommandService::CommandProgress::run() {
     // TODO handle timeout
 
      // command is done 
-    if (context->cmdResult == EResult::SUCCESS) {
+    if (context->cmdResult == EResult::MSP_SUCCESS) {
         context->setState(&context->commandEnd);
     }
-    else if (context->cmdResult != EResult::PROGRESS) {
-        context->handleCmdResult(context->cmdResult, context->currentCmd);
+    else if (context->cmdResult != EResult::MSP_PROGRESS) {
+        context->handleCmdErrorResultAndInit(context->cmdResult, context->currentCmd);
     }
 }
 
@@ -152,4 +147,3 @@ MavlinkCommandManager::CommandService::CommandEnd::entry() {
     context->sendCmdAck(MAVLINK_MSG_ID_COMMAND_ACK, MAV_RESULT_ACCEPTED);
     context->setState(&context->commandInit);
 }
-

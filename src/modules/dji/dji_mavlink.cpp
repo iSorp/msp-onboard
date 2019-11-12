@@ -44,6 +44,7 @@ MavlinkDJI::sendPacket()
 void
 MavlinkDJI::handleMessages()
 {
+    // Synchronizing message buffer from OSDK
     message_lock.lock();
 
     if (bufferLength > 0)

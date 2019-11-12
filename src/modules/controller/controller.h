@@ -1,5 +1,7 @@
 #pragma once
 
+#include <list>
+
 #include "defines.h"
 #include "mav_mavlink.h"
 
@@ -19,28 +21,20 @@ class MspController {
         static MspController *getInstance();
 
         VehicleCmdCallback vehicleCmd = nullptr;
+
+        void vehicleNotification(EVehicleNotification notification);
         
         void initialize(Mavlink* mavlink);
         
         // user commands
-        EResult cmdExecute(uint16_t command);
-        EResult handleMessage(uint16_t message);
+        EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd);
 
-        void missionActivate(){}
-        void missionAddItem(mavlink_mission_item_t wp);
+        bool missionIsActive();
+        EResult missionDelete();
+        EResult missionAddItem(mavlink_mission_item_t wp);
 
-        EState getStateFlag() {
-            return drone_state;
-        }
 
-        // State functions 
-        State* getState() {return state; };
-
-        void setState(State *_state) {
-            _state->exit();
-            state = _state; 
-            state->entry();
-        };
+        std::vector<mavlink_mission_item_t> missionItems;
 
     protected:
         Mavlink* mavlink;
@@ -55,15 +49,15 @@ class MspController {
 
         static MspController *instance;
 
-        EState drone_state;
         State *state;
-        std::vector<mavlink_mission_item_t> missionItems;
-    
-        void setStateFlag(EState flag) {}
-
-        // functions
-        EResult missionDelete();
-
+        
+        // State functions 
+        State* getState() {return state; };
+        void setState(State *_state) {
+            _state->exit();
+            state = _state; 
+            state->entry();
+        };
 
         struct State {
             public:
@@ -72,28 +66,16 @@ class MspController {
 
                 MspController *context;
 
-                virtual EResult cmdExecute(uint16_t command){
-                    return EResult::FAILED;
+                virtual EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd){
+                    return EResult::MSP_FAILED;
                 }
 
                 // State handling functions
                 virtual void entry(){};
                 virtual void exit(){};
-
-
-                // Mission commands
-                virtual EResult missionStart(){}
-                virtual EResult missionStop(){}
-        
-                // Drone commands
-                virtual EResult returnToOrigin(){}
-                virtual EResult takeOff(){}
-                virtual EResult land(){}
-
+    
                 // commands from drone
                 virtual void vehicleNotification(EVehicleNotification notification){}
-
-
         };
 
         class Init: public State {
@@ -106,7 +88,7 @@ class MspController {
             public:
                 Idle(MspController *context) : State(context) {};
                 void entry() override;
-                EResult cmdExecute(uint16_t command) override;
+                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
         class Mission : public State {
@@ -118,18 +100,20 @@ class MspController {
                 void entry() override;
                 void exit() override;
                 void vehicleNotification(EVehicleNotification notification) override;
-                EResult cmdExecute(uint16_t command) override;
-                EResult missionStart() override;
-                EResult missionStop() override;
+                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
 
+            private:
+                EResult missionStart();
+                EResult missionStop();
+                EResult missionPauseContinue(bool pause);
                 void sendMissionItemReached(int seq);
         };
 
         class Command : public State {
             public:
                 Command(MspController *context) : State(context) {};
-                void vehicleNotification(EVehicleNotification notification);
-                EResult cmdExecute(uint16_t command) override;
+                void vehicleNotification(EVehicleNotification notification) override;
+                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
         Init stateInit;

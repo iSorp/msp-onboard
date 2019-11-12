@@ -1,6 +1,7 @@
 set (mavlink_src 
     mav_mavlink.cpp
     mav_mavlink_udp.cpp
+    mav_message.cpp
     mav_command.cpp
     mav_mission.cpp
     mav_ftp.cpp
