@@ -68,6 +68,9 @@ void
 MspController::Mission::vehicleNotification(EVehicleNotification notification) {
 
     if (notification == EVehicleNotification::MSP_VHC_WAY_POINT_REACHED) {
+        // Pause mission
+        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
+
         sendMissionItemReached(1);
 
         // read DJI telemetrie data

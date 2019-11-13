@@ -3,17 +3,12 @@
 #include <list>
 
 #include "defines.h"
+#include "controller_def.h"
 #include "mav_mavlink.h"
 
 class MspController {
     
     typedef void (*VehicleCmdCallback)(EVehicleCmd cmd, void* data, size_t len);
-
-    enum class EState : uint32_t{
-        MISSION_EXISTS  = (1 << 0),
-        MISSION_ACTIVE  = (1 << 1),
-        MISSION_RUNNING = (1 << 2)
-    };
 
     struct State;
 
@@ -30,11 +25,19 @@ class MspController {
         EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd);
 
         bool missionIsActive();
+
+        // Mission repository
         EResult missionDelete();
         EResult missionAddItem(mavlink_mission_item_t wp);
+        mavlink_mission_item_t* getMissionItem(int index) {
+            if (index < missionItems.size())
+                return &missionItems[index];
+            return NULL;
+        } 
+        int getMissionItemCount(){
+            return missionItems.size();
+        }
 
-
-        std::vector<mavlink_mission_item_t> missionItems;
 
     protected:
         Mavlink* mavlink;
@@ -48,8 +51,9 @@ class MspController {
         {}
 
         static MspController *instance;
-
         State *state;
+        std::vector<mavlink_mission_item_t> missionItems;
+
         
         // State functions 
         State* getState() {return state; };

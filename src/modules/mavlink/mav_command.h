@@ -1,7 +1,8 @@
 #pragma once
 
-#include "mav_service.h"
 #include "defines.h"
+#include "controller_def.h"
+#include "mav_service.h"
 
 
 struct Mavlink;

@@ -11,6 +11,8 @@ using namespace DJI::OSDK::Telemetry;
 
 Vehicle* vehicle;
 std::vector<WayPointSettings> wp_list;
+WayPointFinishData wayPointFinishData;
+WayPointFinishData eventWayPointFinishData;
 
 int responseTimeout = 3;
 
@@ -80,6 +82,11 @@ void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userDa
     MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED);
 }
 
+void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED);
+}
+
 
 //-------------------------------------------------------------
 // Mission upload and running
@@ -110,7 +117,8 @@ uploadWaypoints() {
     }
 
     // Add callback for waypoint management
-    vehicle->missionManager->wpMission->setWaypointCallback(wayPointCallback, NULL);
+    vehicle->missionManager->wpMission->setWaypointCallback(wayPointCallback, &wayPointFinishData);
+    vehicle->missionManager->wpMission->setWaypointEventCallback(wayPointEventCallback, &eventWayPointFinishData);
 }
 
 void
@@ -134,8 +142,6 @@ runWaypointMission() {
 void
 createWaypoints() {
 
-    std::vector<mavlink_mission_item_t> items = MspController::getInstance()->missionItems;
-
     std::vector<DJI::OSDK::WayPointSettings> wp_list;
 
     // Create Start Waypoint
@@ -152,16 +158,19 @@ createWaypoints() {
   
     wp_list.push_back(start_wp);
 
-    for (int i = 1; i < items.size(); i++)
+    for (int i = 1; i < MspController::getInstance()->getMissionItemCount(); i++)
     {
-        WayPointSettings  wp;
-        WayPointSettings* prevWp = &wp_list[i - 1];
-        setWaypointDefaults(&wp);
-        wp.index     = i;
-        wp.latitude  = items[i].x;
-        wp.longitude = items[i].y;
-        wp.altitude  = items[i].z;
-        wp_list.push_back(wp);
+        mavlink_mission_item_t* item = MspController::getInstance()->getMissionItem(i);
+        if (item){
+            WayPointSettings  wp;
+            WayPointSettings* prevWp = &wp_list[i - 1];
+            setWaypointDefaults(&wp);
+            wp.index     = i;
+            wp.latitude  = item->x;
+            wp.longitude = item->y;
+            wp.altitude  = item->z;
+            wp_list.push_back(wp);
+        }
     }
 }
 

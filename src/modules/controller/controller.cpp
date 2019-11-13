@@ -17,9 +17,6 @@ MspController::initialize(Mavlink* mavlink) {
     
     this->mavlink = mavlink;
 
-    //missionItems.reserve(MAX_MISSION_ITEM_COUNT);
-    //missionItems.resize(MAX_MISSION_ITEM_COUNT);
-
     // State machine entrypoint
     setState(&stateInit);
 }

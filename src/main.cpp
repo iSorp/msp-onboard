@@ -1,4 +1,7 @@
 
+#include <iostream>
+#include <exception>
+#include <stdexcept>
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -20,6 +23,9 @@
 #include "mav_mavlink_udp.h"
 #include "controller.h"
 
+#define MAVLKIN_UDP
+#undef DJI_OSDK
+
 #ifdef DJI_OSDK
     #include "dji_vehicle.hpp"
     #include "dji_linux_helpers.hpp"
@@ -28,38 +34,51 @@
     #include "dji_mission_interface.h"
 #endif
 
+const char* config_path = "/home/simon/UserConfig.txt";
+
 int main(int argc, char** argv) {
 	
-#ifdef DJI_OSDK
+    #ifdef DJI_OSDK
+    char* arg[3];
+    arg[0] = argv[0];
+    arg[1] = config_path;
+
+    MavlinkDJI* mavlinkDJI;
+    std::thread threadMavlinkDJI;
+
     // Setup OSDK.
-    /*LinuxSetup linuxEnvironment(argc, argv);
+    LinuxSetup linuxEnvironment(2, arg);
     Vehicle* vehicle = linuxEnvironment.getVehicle();
-    if (vehicle == nullptr)
+    if (vehicle != nullptr)
     {
-        std::cout << "Vehicle not initialized, exiting.\n";
-        return -1;
-    }*/
+        // Setup mavlink for DJI
+        mavlinkDJI = new MavlinkDJI();
+        std::thread threadMavlinkDJI = mavlinkDJI->start();
 
-    // Setup mavlink for DJI
-    MavlinkDJI* mavlinkDJI = new MavlinkDJI();
-    std::thread threadMavlinkDJI = mavlinkDJI->start();
+        // Setup mobile communication
+        setupMSDKComm(vehicle, &linuxEnvironment, mavlinkDJI);
+        setupDJIMission(vehicle, &linuxEnvironment);
+    }
+    else{
+        std::cout << "Vehicle not initialized, UDP simulation mode.\n";
+    }
 
-    // Setup mobile communication
-    //setupMSDKComm(vehicle, &linuxEnvironment, mavlinkDJI);
+    #endif
 
-
-    //setupDJIMission(vehicle, &linuxEnvironment);
+    #ifdef MAVLKIN_UDP    
+    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
+    std::thread threadMavlinkUDP = mavlinkUDP->start();
+    #endif
 
     // dji mavlink test
     //setupMSDKComm(NULL, NULL, mavlinkDJI);
     //uint8_t heartBeat[17] = {0xfe, 0x09, 00, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x08, 0x00, 0x00, 0x03, 0xf4, 0x5a };
     //mavlinkDJI->setBuffer(heartBeat, 17);
-#endif
+
   
     // Initialize mavlink connection
-    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
-     MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
-    std::thread threadMavlinkUDP = mavlinkUDP->start();
+
 
     // Initialize the controller (DJI communication, sensors)
     MspController::getInstance()->initialize(mavlinkUDP);
@@ -69,14 +88,20 @@ int main(int argc, char** argv) {
         setvbuf (stdout, NULL, _IONBF, 0);
     }
    
-    mavlinkUDP->stop();
-    threadMavlinkUDP.join();
-    delete mavlinkUDP;
+    #ifdef MAVLKIN_UDP
+    if (mavlinkUDP){
+        mavlinkUDP->stop();
+        threadMavlinkUDP.join();
+        delete mavlinkUDP;
+    }
+    #endif
 
     #ifdef DJI_OSDK
+    if (mavlinkDJI){
         mavlinkDJI->stop();
         threadMavlinkDJI.join();
         delete mavlinkDJI;
+    }
     #endif
     return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <typeinfo>
+
 #include "defines.h"
 #include "mavlink_types.h"
 
