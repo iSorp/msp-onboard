@@ -19,10 +19,14 @@ setupMSDKComm(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment, MavlinkDJI* mav
     mavlink = mavlinkDJI;
 
     // set callback for mavlink send data
-    mavlink->sendDataCallback = &sendDataToMSDK;
-
+    if (mavlink){
+        mavlink->sendDataCallback = &sendDataToMSDK;
+    }
+    
     // register callback for mobile data
-    //vehicle->mobileDevice->setFromMSDKCallback(mobileCallback, linuxEnvironment);
+    if (vehicle){
+        vehicle->mobileDevice->setFromMSDKCallback(mobileCallback, linuxEnvironment);
+    } 
 }
 
 void
@@ -31,14 +35,16 @@ mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
     // mobile_data_id = *(reinterpret_cast<uint16_t*>(&recvFrame.recvData.raw_ack_array));
 
     // route received data to dji mavlink receiver
-    if (mavlink)
+    if (mavlink) {
         mavlink->setBuffer(recvFrame.recvData.raw_ack_array, MAX_INCOMING_DATA_SIZE);
+    }
 }
 
 void
 sendDataToMSDK(uint8_t* data, uint8_t len)
 {
     //vehicle->moc->sendDataToMSDK(data, len);
-    if (vehicle)
+    if (vehicle) {
         vehicle->mobileDevice->sendDataToMSDK(data, len);
+    }
 }

@@ -1,4 +1,6 @@
 
+#include <iostream>
+
 #include "controller.h"
 #include "sensors.h"
 
@@ -10,7 +12,10 @@ void
 MspController::Init::entry() {
     
     // TODO initialize
-    initializeSensors();
-
+    int ret = initializeSensors();
+    if (ret != 0){
+        std::cout << "sensor initialization failed";
+    }
+    
     context->setState(&context->stateIdle);
 }

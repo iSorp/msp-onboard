@@ -38,11 +38,11 @@
 class LinuxSetup
 {
 public:
-  LinuxSetup(int argc, char **argv, bool enableAdvancedSensing = false);
+  LinuxSetup(int argc, const char **argv, bool enableAdvancedSensing = false);
   ~LinuxSetup();
 
 public:
-  void setupEnvironment(int argc, char** argv);
+  void setupEnvironment(int argc, const char** argv);
   void initVehicle();
   bool validateSerialPort();
 

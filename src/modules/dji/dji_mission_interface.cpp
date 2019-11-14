@@ -103,36 +103,41 @@ uploadWaypoints() {
     float64_t increment = 0.000001;
     float32_t start_alt = 10;
 
-    ACK::ErrorCode initAck = vehicle->missionManager->init(DJI_MISSION_TYPE::WAYPOINT, responseTimeout, &fdata);
-    if (ACK::getError(initAck))
-    {
-        ACK::getErrorCodeMessage(initAck, __func__);
-    }
+    if (vehicle) {
+        ACK::ErrorCode initAck = vehicle->missionManager->init(DJI_MISSION_TYPE::WAYPOINT, responseTimeout, &fdata);
+        if (ACK::getError(initAck))
+        {
+            ACK::getErrorCodeMessage(initAck, __func__);
+        }
 
-    for (std::vector<WayPointSettings>::iterator wp = wp_list.begin(); wp != wp_list.end(); ++wp)
-    {
-        printf("Waypoint created at (LLA): %f \t%f \t%f\n ", wp->latitude, wp->longitude, wp->altitude);
-        ACK::WayPointIndex wpDataACK = vehicle->missionManager->wpMission->uploadIndexData(&(*wp), responseTimeout);
-        ACK::getErrorCodeMessage(wpDataACK.ack, __func__);
-    }
+        for (std::vector<WayPointSettings>::iterator wp = wp_list.begin(); wp != wp_list.end(); ++wp)
+        {
+            printf("Waypoint created at (LLA): %f \t%f \t%f\n ", wp->latitude, wp->longitude, wp->altitude);
+            ACK::WayPointIndex wpDataACK = vehicle->missionManager->wpMission->uploadIndexData(&(*wp), responseTimeout);
+            ACK::getErrorCodeMessage(wpDataACK.ack, __func__);
+        }
 
-    // Add callback for waypoint management
-    vehicle->missionManager->wpMission->setWaypointCallback(wayPointCallback, &wayPointFinishData);
-    vehicle->missionManager->wpMission->setWaypointEventCallback(wayPointEventCallback, &eventWayPointFinishData);
+        // Add callback for waypoint management
+        vehicle->missionManager->wpMission->setWaypointCallback(wayPointCallback, &wayPointFinishData);
+        vehicle->missionManager->wpMission->setWaypointEventCallback(wayPointEventCallback, &eventWayPointFinishData);
+    }
 }
 
 void
 runWaypointMission() {
     
     // Waypoint Mission: Start
-    ACK::ErrorCode startAck = vehicle->missionManager->wpMission->start(responseTimeout);
-    if (ACK::getError(startAck))
+    if (vehicle)
     {
-        ACK::getErrorCodeMessage(startAck, __func__);
-    }
-    else
-    {
-        std::cout << "Starting Waypoint Mission.\n";
+        ACK::ErrorCode startAck = vehicle->missionManager->wpMission->start(responseTimeout);
+        if (ACK::getError(startAck))
+        {
+            ACK::getErrorCodeMessage(startAck, __func__);
+        }
+        else
+        {
+            std::cout << "Starting Waypoint Mission.\n";
+        }
     }
 }
 
@@ -151,10 +156,12 @@ createWaypoints() {
     // Global position retrieved via subscription
     Telemetry::TypeMap<TOPIC_GPS_FUSED>::type subscribeGPosition;
 
-    subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
-    start_wp.latitude  = subscribeGPosition.latitude;
-    start_wp.longitude = subscribeGPosition.longitude;
-    start_wp.altitude  = 10;
+    if (vehicle){
+        subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
+        start_wp.latitude  = subscribeGPosition.latitude;
+        start_wp.longitude = subscribeGPosition.longitude;
+        start_wp.altitude  = 10;
+    }
   
     wp_list.push_back(start_wp);
 

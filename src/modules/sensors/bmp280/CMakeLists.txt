@@ -3,9 +3,8 @@ set (bmp280_src
     bmp280i2c.c
     )
 
-
-
-add_definitions(-DBMP280)
+set_source_files_properties(bmp280.c PROPERTIES LANGUAGE CXX )
+set_source_files_properties(bmp280i2c.c PROPERTIES LANGUAGE CXX )
 
 add_library(bmp280 "${bmp280_src}")
 target_include_directories (bmp280 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

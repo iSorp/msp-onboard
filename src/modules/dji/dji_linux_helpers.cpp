@@ -31,7 +31,7 @@
 
 using namespace DJI::OSDK;
 
-LinuxSetup::LinuxSetup(int argc, char** argv, bool enableAdvancedSensing)
+LinuxSetup::LinuxSetup(int argc, const char** argv, bool enableAdvancedSensing)
 {
   this->functionTimeout     = 1; // second
   this->vehicle             = nullptr;
@@ -60,7 +60,7 @@ LinuxSetup::~LinuxSetup()
 }
 
 void
-LinuxSetup::setupEnvironment(int argc, char** argv)
+LinuxSetup::setupEnvironment(int argc, const char** argv)
 {
 
   // Config file loading
@@ -174,24 +174,24 @@ LinuxSetup::initVehicle()
     this->vehicle     = nullptr;
     this->environment = nullptr;
   }
+  else {
+    // Activate
+    activateData.ID = environment->getApp_id();
+    char app_key[65];
+    activateData.encKey = app_key;
+    strcpy(activateData.encKey, environment->getEnc_key().c_str());
+    activateData.version = vehicle->getFwVersion();
+    ACK::ErrorCode ack   = vehicle->activate(&activateData, functionTimeout);
 
-  // Activate
-  activateData.ID = environment->getApp_id();
-  char app_key[65];
-  activateData.encKey = app_key;
-  strcpy(activateData.encKey, environment->getEnc_key().c_str());
-  activateData.version = vehicle->getFwVersion();
-  ACK::ErrorCode ack   = vehicle->activate(&activateData, functionTimeout);
-
-  if (ACK::getError(ack))
-  {
-    ACK::getErrorCodeMessage(ack, __func__);
-    delete (vehicle);
-    delete (environment);
-    this->environment = nullptr;
-    this->vehicle     = nullptr;
+    if (ACK::getError(ack))
+    {
+      ACK::getErrorCodeMessage(ack, __func__);
+      delete (vehicle);
+      delete (environment);
+      this->environment = nullptr;
+      this->vehicle     = nullptr;
+    }
   }
-
 }
 
 bool

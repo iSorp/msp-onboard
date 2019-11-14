@@ -1,30 +1,10 @@
-
-#include <iostream>
-#include <exception>
-#include <stdexcept>
-#include <errno.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <limits.h>
-
-#include <sys/time.h>
-#include <time.h>
-#include <arpa/inet.h>
-
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <thread>
+#include <signal.h>
 
 #include "mav_mavlink_udp.h"
 #include "controller.h"
 
 #define MAVLKIN_UDP
-#undef DJI_OSDK
+#define DJI_OSDK
 
 #ifdef DJI_OSDK
     #include "dji_vehicle.hpp"
@@ -39,7 +19,7 @@ const char* config_path = "/home/simon/UserConfig.txt";
 int main(int argc, char** argv) {
 	
     #ifdef DJI_OSDK
-    char* arg[3];
+    const char* arg[3];
     arg[0] = argv[0];
     arg[1] = config_path;
 
@@ -61,13 +41,17 @@ int main(int argc, char** argv) {
     }
     else{
         std::cout << "Vehicle not initialized, UDP simulation mode.\n";
+
+        // Setup mobile communication
+        setupMSDKComm(NULL, &linuxEnvironment, NULL);
+        setupDJIMission(NULL, &linuxEnvironment);
     }
 
     #endif
 
     #ifdef MAVLKIN_UDP    
-    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
-    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
+    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
     std::thread threadMavlinkUDP = mavlinkUDP->start();
     #endif
 

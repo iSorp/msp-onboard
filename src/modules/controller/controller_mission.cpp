@@ -1,4 +1,12 @@
+#include <iomanip>
+
+// https://github.com/nlohmann/json
+#include "json.hpp"
+
+#include "helper.h"
 #include "controller.h"
+#include "sensors.h"
+
 
 //-------------------------------------------------------------
 // Class Mission 
@@ -34,6 +42,26 @@ MspController::Mission::cmdExecute(uint16_t command, mavlink_command_long_t cmd)
 
 EResult 
 MspController::Mission::missionStart() {
+
+
+      // Combine and stor data
+        nlohmann::json j = {
+            {"pi", 3.141},
+            {"happy", true},
+            {"name", "Niels"},
+            {"nothing", nullptr},
+            {"answer", {
+                {"everything", 42}
+            }},
+            {"list", {1, 0, 2}},
+            {"object", {
+                {"currency", "USD"},
+                {"value", 42.99}
+            }}
+        };
+
+        std::ofstream o("pretty.json");
+        o << std::setw(4) << j << std::endl;
 
     // Upload mission data
     MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS, NULL, 0);
@@ -76,8 +104,27 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification) {
         // read DJI telemetrie data
 
         // read sensor data
+        double sensor_value = getSensorValue(0);
 
         // Combine and stor data
+        nlohmann::json j = {
+            {"pi", 3.141},
+            {"happy", true},
+            {"name", "Niels"},
+            {"nothing", nullptr},
+            {"answer", {
+                {"everything", 42}
+            }},
+            {"list", {1, 0, 2}},
+            {"object", {
+                {"currency", "USD"},
+                {"value", 42.99}
+            }}
+        };
+
+        std::ofstream o("pretty.json");
+        o << std::setw(4) << j << std::endl;
+
 
         // check for next WP
 

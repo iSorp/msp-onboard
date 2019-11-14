@@ -26,7 +26,7 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
 endif ()
 
 
-## Dji-Onboard-SDK
+# Dji-Onboard-SDK
 include_directories("${CMAKE_INSTALL_PREFIX}/include/djiosdk")
 
 # Mavlink-SDK
