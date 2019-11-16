@@ -1,7 +1,10 @@
 #include <iostream>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+
+#if defined(__linux__)
 #include <linux/i2c-dev.h>
+#endif
 
 #include "bmp280_defs.h"
 #include "bmp280i2c.h"
@@ -34,10 +37,21 @@ initializeSensors() {
     return ret;
 }
 
-double getSensorValue(int sensor_id){
+sensor_t 
+getSensorValue(int sensor_id){
+    sensor_t sensor;
     switch (sensor_id){
-        case 1:
-        return readTemperature();
+    case 1:
+        sensor.id = sensor_id;
+        sensor.value = std::to_string(readTemperature());
         break;
+    case 2:
+        sensor.id = sensor_id;
+        sensor.value = std::to_string(readPressure());
+        break;
+    default:
+        sensor.id = -1;
+        sensor.value = "";
     }
+    return sensor;
 }

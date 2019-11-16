@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mavlink_bridge_header.h"
 #include "mav_service.h"
 #include "defines.h"
 
@@ -34,6 +35,9 @@ class MavlinkMissionManager : public MavlinkServiceManager
                 };
 
                 // Variables
+                mavlink_mission_item_t lastRcvItem = {};
+
+                int wpIndex = 0;
                 int count = 0;
                 int seq = 0;
 

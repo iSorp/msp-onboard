@@ -1,10 +1,11 @@
-#include <signal.h>
+//#include <log4cpp/Category.hh>
+//#include <log4cpp/PropertyConfigurator.hh>
 
 #include "mav_mavlink_udp.h"
 #include "controller.h"
 
 #define MAVLKIN_UDP
-#define DJI_OSDK
+//#define DJI_OSDK
 
 #ifdef DJI_OSDK
     #include "dji_vehicle.hpp"
@@ -46,12 +47,11 @@ int main(int argc, char** argv) {
         setupMSDKComm(NULL, &linuxEnvironment, NULL);
         setupDJIMission(NULL, &linuxEnvironment);
     }
-
     #endif
 
     #ifdef MAVLKIN_UDP    
-    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
-    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
+    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
     std::thread threadMavlinkUDP = mavlinkUDP->start();
     #endif
 

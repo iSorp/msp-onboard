@@ -7,6 +7,57 @@
 #include "controller.h"
 #include "sensors.h"
 
+/*
+static void 
+writeWpResult(waypointReachedData_t* wpdata, int num, sensor_t* sensor...) {
+    nlohmann::json j;
+    va_list valist;
+    sensor_t* s;
+    va_start(valist, num);
+
+    nlohmann::json sensor_array = nlohmann::json::array();
+
+    for (int i = 0; i < num; i++) {
+        s =  va_arg(valist, sensor_t*);
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"id", s->id},
+            {"value", s->value},
+        });
+    }
+    j["sensors"] = sensor_array;
+    
+    j["x"] = wpdata->x;
+    j["y"] = wpdata->y;
+    j["z"] = wpdata->z;
+
+    std::ofstream ofs("wp" + std::to_string(wpdata->index) + "data.json");
+    ofs << std::setw(4) << j << std::endl;
+}
+*/
+
+static void 
+writeWpResult(waypointReachedData_t* wpdata, std::vector<sensor_t> sensors) {
+    nlohmann::json j;
+    nlohmann::json sensor_array = nlohmann::json::array();
+
+    for (int i = 0; i < sensors.size(); i++) {
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"id", sensors[i].id},
+            {"value", sensors[i].value},
+        });
+    }
+    j["sensors"] = sensor_array;
+    
+    j["x"] = wpdata->x;
+    j["y"] = wpdata->y;
+    j["z"] = wpdata->z;
+
+    std::ofstream ofs("wp" + std::to_string(wpdata->index) + "data.json");
+    ofs << std::setw(4) << j << std::endl;
+}
+
 
 //-------------------------------------------------------------
 // Class Mission 
@@ -43,32 +94,11 @@ MspController::Mission::cmdExecute(uint16_t command, mavlink_command_long_t cmd)
 EResult 
 MspController::Mission::missionStart() {
 
-
-      // Combine and stor data
-        nlohmann::json j = {
-            {"pi", 3.141},
-            {"happy", true},
-            {"name", "Niels"},
-            {"nothing", nullptr},
-            {"answer", {
-                {"everything", 42}
-            }},
-            {"list", {1, 0, 2}},
-            {"object", {
-                {"currency", "USD"},
-                {"value", 42.99}
-            }}
-        };
-
-        std::ofstream o("pretty.json");
-        o << std::setw(4) << j << std::endl;
-
     // Upload mission data
     MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS, NULL, 0);
 
     // Start mission
     MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_START, NULL, 0);
-
     return EResult::MSP_SUCCESS;
 }
 
@@ -93,40 +123,43 @@ MspController::Mission::missionStop() {
 }
 
 void 
-MspController::Mission::vehicleNotification(EVehicleNotification notification) {
+MspController::Mission::vehicleNotification(EVehicleNotification notification, VehicleData* data) {
 
     if (notification == EVehicleNotification::MSP_VHC_WAY_POINT_REACHED) {
         // Pause mission
         MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
 
-        sendMissionItemReached(1);
+        // Handle wpreached data
+        if (typeid(data) == typeid(waypointReachedData_t)) {
+            waypointReachedData_t* wpdata = (waypointReachedData_t*)data;
+            if (wpdata) {
 
-        // read DJI telemetrie data
+                // Send mission item reached mavlink messsage
+                sendMissionItemReached(wpdata->index);
 
-        // read sensor data
-        double sensor_value = getSensorValue(0);
+                // Export position and sensor data
+                std::vector<mavlink_mission_item_t>* items = MspController::getInstance()->getMissionItem(wpdata->index);
+                if (items) {
+                    std::vector<sensor_t> sensors;
+                    for (int i = 0; i < items->size(); i++){
+                        mavlink_mission_item_t item = (*items)[i];
 
-        // Combine and stor data
-        nlohmann::json j = {
-            {"pi", 3.141},
-            {"happy", true},
-            {"name", "Niels"},
-            {"nothing", nullptr},
-            {"answer", {
-                {"everything", 42}
-            }},
-            {"list", {1, 0, 2}},
-            {"object", {
-                {"currency", "USD"},
-                {"value", 42.99}
-            }}
-        };
-
-        std::ofstream o("pretty.json");
-        o << std::setw(4) << j << std::endl;
-
-
+                        // TODO handle Camera commands
+                        if (item.command == MAV_CMD_USER_1) continue;
+                        if (item.command == MAV_CMD_USER_2) {
+                            int id = (int)item.param1;
+                            sensors.push_back(getSensorValue(id));
+                        }
+                    }
+                    if (sensors.size() > 0) {
+                        writeWpResult(wpdata, sensors);
+                    }               
+                }
+            }
+        }
+        
         // check for next WP
+
 
         // resume mission
         MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);

@@ -32,3 +32,11 @@ enum EResult {
     // Command in progress, ends later
     MSP_PROGRESS
 };
+
+
+struct waypointReachedData_t {
+    u_int16_t index;
+    float x;
+    float y;
+    float z;
+};

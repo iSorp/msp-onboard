@@ -1,4 +1,10 @@
+#include <string>
+
+struct sensor_t {
+    int id;
+    std::string value;
+};
 
 int initializeSensors();
 
-double getSensorValue(int sensor_id);
+sensor_t getSensorValue(int sensor_id);

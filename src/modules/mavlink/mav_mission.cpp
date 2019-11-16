@@ -108,7 +108,12 @@ MavlinkMissionManager::MissionDownloadService::handleMissionItem(const mavlink_m
 	mavlink_msg_mission_item_decode(msg, &wp);
 
     // -> Save the mission item <-
-    MspController::getInstance()->missionAddItem(wp);
+    if (wp.x != lastRcvItem.x || wp.y != lastRcvItem.y || wp.z != lastRcvItem.z) {
+        ++wpIndex;
+    }
+
+    MspController::getInstance()->missionAddItem(wpIndex, wp);
+    lastRcvItem = wp;
 }
 
 //-------------------------------------------------------------
@@ -117,12 +122,14 @@ MavlinkMissionManager::MissionDownloadService::handleMissionItem(const mavlink_m
 void
 MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::entry() { 
     // initialize 
+    context->wpIndex = 0;
     context->retries = 0;
     context->count = 0;
     context->seq = 1;
     context->transferSysId = 0;
     context->transferCompId = 0;
     context->repeatCounter = 0;
+    context->lastRcvItem = {};
 }
 
 void

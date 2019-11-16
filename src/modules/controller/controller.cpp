@@ -33,12 +33,44 @@ MspController::cmdExecute(uint16_t command, mavlink_command_long_t cmd) {
 * Notification from vehicle
 */
 void
-MspController::vehicleNotification(EVehicleNotification notification) {
-    state->vehicleNotification(notification);
+MspController::vehicleNotification(EVehicleNotification notification, VehicleData* data) {
+    state->vehicleNotification(notification, data);
 }
        
 // Mission functionalities
 //-------------------------------------------------------------
+
+
+/*
+* Gets the behavior mission item for a certain key. This item contains the behavior for the flight,
+* like speed and delay
+*/
+mavlink_mission_item_t* 
+MspController::getMissionBehaviorItem(int key) {
+    mavlink_mission_item_t item;
+    if (missionItemMap.count(key) > 0) {
+        std::vector<mavlink_mission_item_t> items = missionItemMap[key];
+        for (int i = 0; i < items.size(); i++) {
+            if (items[i].command == MAV_CMD_USER_1) {
+                return &items[i];
+            }
+        }
+    } 
+    return NULL;
+} 
+
+std::vector<mavlink_mission_item_t>* 
+MspController::getMissionItem(int key) {
+    if (missionItemMap.count(key) > 0) { 
+        return &missionItemMap[key];
+    }
+    return NULL;
+} 
+int 
+MspController::getMissionItemCount(){
+    return missionItemMap.size();
+}
+
 
 bool
 MspController::missionIsActive() {
@@ -49,7 +81,7 @@ EResult
 MspController::missionDelete() {
     if (typeid(*state) == typeid(MspController::Idle))
     {
-        missionItems.clear();
+        missionItemMap.clear();
         std::cout << "mission deleted";
         return EResult::MSP_SUCCESS;
     }
@@ -59,14 +91,13 @@ MspController::missionDelete() {
     }
 }
 
-
 EResult
-MspController::missionAddItem(mavlink_mission_item_t wp){
+MspController::missionAddItem(int key, mavlink_mission_item_t wp){
     EResult res = EResult::MSP_FAILED;
     if (typeid(*state) == typeid(MspController::Idle))
     {
-        if (missionItems.size() <= MAX_MISSION_ITEM_COUNT) {
-            missionItems.push_back(wp);
+        if (missionItemMap.size() <= MAX_MISSION_ITEM_COUNT) {
+            missionItemMap[key].push_back(wp);
 
             res = EResult::MSP_SUCCESS;
         }

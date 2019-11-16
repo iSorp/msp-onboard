@@ -26,6 +26,9 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
 endif ()
 
 
+#find_package(.. REQUIRED)
+
+
 # Dji-Onboard-SDK
 include_directories("${CMAKE_INSTALL_PREFIX}/include/djiosdk")
 
@@ -58,8 +61,10 @@ add_subdirectory(modules/mavlink)
 add_subdirectory(modules/controller)
 add_subdirectory(modules/sensors)
 
+
 # executable
 add_executable(msp-onboard main.cpp)
+add_library(msp-onboard log4cpp ) 
 target_link_libraries(msp-onboard mavlink)
 target_link_libraries(msp-onboard controller)
 target_link_libraries(msp-onboard sensors)

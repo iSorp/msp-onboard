@@ -24,7 +24,7 @@ MspController::Command::cmdExecute(uint16_t command, mavlink_command_long_t cmd)
 }
 
 void 
-MspController::Command::vehicleNotification(EVehicleNotification notification) {
+MspController::Command::vehicleNotification(EVehicleNotification notification, VehicleData* data) {
 
     if (notification == EVehicleNotification::MSP_VHC_LANDED) {
         Mavlink* mavlink = MspController::getInstance()->mavlink;
