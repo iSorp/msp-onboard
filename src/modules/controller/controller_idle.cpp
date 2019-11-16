@@ -21,6 +21,7 @@ MspController::Idle::cmdExecute(uint16_t command, mavlink_command_long_t cmd) {
         context->setState(&context->stateCommand);
         break;
     default:
+        spdlog::warn("MspController::Idle::cmdExecute, command not available");
         return EResult::MSP_INVALID;
         break;
     }

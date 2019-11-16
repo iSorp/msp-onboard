@@ -12,10 +12,7 @@ void
 MspController::Init::entry() {
     
     // TODO initialize
-    int ret = initializeSensors();
-    if (ret != 0){
-        std::cout << "sensor initialization failed";
-    }
+    MspSensors::getInstance()->initialize();
     
     context->setState(&context->stateIdle);
 }

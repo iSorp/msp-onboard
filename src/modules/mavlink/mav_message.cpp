@@ -11,7 +11,9 @@
 
 void
 MavlinkMessageManager::run() {
-    
+    /*if ((microsSinceEpoch() - mavlink->getSendTime()) > HeartbeatTimeout) {
+        // TODO send Heartbeat
+    }*/
 }
 
 void

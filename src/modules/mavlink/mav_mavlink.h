@@ -13,13 +13,7 @@
 
 struct Mavlink
 {
-    typedef void (*ControllerErrorCallback)(int msg);
-
-    struct queue_message_t{
-        mavlink_message_t msg;
-        size_t len;
-        ControllerErrorCallback errorCallback;
-    };
+    using ControllerErrorCallback = void (*)(int msg);
 
     public:
         Mavlink() : 
@@ -56,7 +50,6 @@ struct Mavlink
         const int timeout = 10; // ms
         uint8_t send_buf[MAVLINK_MAX_PACKET_LEN];
         unsigned send_buf_len=0;
-        std::queue<queue_message_t> sendQueue;
 
         // functions
         void runServices();

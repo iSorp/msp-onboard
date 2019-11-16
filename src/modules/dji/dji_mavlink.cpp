@@ -1,12 +1,9 @@
 #include <mutex>
-#include "defines.h"
-#include "mav_mavlink.h"
-#include "dji_mavlink.h"
 
+#include "defines.h"
 #include "helper.h"
 #include "mav_mavlink.h"
 #include "dji_mavlink.h"
-
 
 std::mutex message_lock;
 

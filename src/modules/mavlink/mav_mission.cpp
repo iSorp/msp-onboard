@@ -19,11 +19,13 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 
         // Start mission item upload (Creates a new mission)
         case MAVLINK_MSG_ID_MISSION_COUNT:
+            spdlog::info("MavlinkMissionManager::handle_message, start mission download");
             missionDownloadService.setState(&missionDownloadService.missionDownloadInit);
             break;
 
         // deletes the current mission
         case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
+            spdlog::info("MavlinkMissionManager::handle_message, mission delete");
             missionDelete(msg);
             break;
             
@@ -75,7 +77,7 @@ MavlinkMissionManager::MissionDownloadService::handleMissionCount(const mavlink_
     MAV_MISSION_TYPE mission_type;
 
     if (itemCount.count >= MAX_MISSION_ITEM_COUNT) {
-        printf("handleMissionCount: too many mission items");
+        spdlog::error("MissionDownloadService::handleMissionCount, too many mission items");
         manager->sendMissionAck(transferSysId, transferCompId, MAV_MISSION_NO_SPACE);
         return;
     }
@@ -94,9 +96,9 @@ MavlinkMissionManager::MissionDownloadService::handleMissionRequest(uint8_t sysi
         wpr.target_component = compid;
         wpr.seq = seq;
         mavlink_msg_mission_request_send_struct(mavlink->getChannel(), &wpr);
-        printf("item request: %i \n", seq);
+        spdlog::debug("MissionDownloadService::handleMissionRequest, item request");
 	} else {
-        printf("ERROR: Waypoint index exceeds list capacity");
+        spdlog::error("MissionDownloadService::handleMissionCount, too many mission items");
         manager->sendMissionAck(transferSysId, transferCompId, MAV_MISSION_NO_SPACE);
 	}
 }
@@ -121,6 +123,7 @@ MavlinkMissionManager::MissionDownloadService::handleMissionItem(const mavlink_m
 //-------------------------------------------------------------
 void
 MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::entry() { 
+
     // initialize 
     context->wpIndex = 0;
     context->retries = 0;
@@ -163,7 +166,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::handleMessag
 
         mavlink_mission_item_t wp;
         mavlink_msg_mission_item_decode(msg, &wp);
-        printf("item received: %i \n", wp.seq);
+        spdlog::debug("MissionDownloadItem::handleMessage, item received: " + std::to_string(wp.seq));
 
         // check item sequence number, musst be equal than the requested item
         if (wp.seq == context->seq) {
@@ -172,8 +175,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::handleMessag
         }
         else {
             // wrong sequence number received, retry MAX_RETRIES times
-            printf("wrong sequence number received: %i \n", context->seq);
-
+            spdlog::warn("MissionDownloadItem::handleMessage, wrong sequence number received: " + std::to_string(context->seq));
             if (MAV_MAX_RETRIES < context->retries) {
                 ++context->retries;
                 context->manager->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_INVALID_SEQUENCE);
@@ -202,7 +204,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::run() {
             ++context->repeatCounter;
         }
         else{
-            printf("max retries reached");
+            spdlog::error("MissionDownloadItem::run, max retries reached: " + context->seq);
             context->manager->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ERROR);
             context->setState(&context->missionDownloadInit);
             return;
@@ -216,6 +218,8 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::run() {
 void
 MavlinkMissionManager::MissionDownloadService::MissionDownloadEnd::entry() { 
     
+    spdlog::info("MissionDownloadService::entry, mission download success");
+
     // Activate new mission
     context->manager->sendMissionAck(context->transferSysId, context->transferCompId, MAV_MISSION_ACCEPTED);
     context->setState(&context->missionDownloadInit);

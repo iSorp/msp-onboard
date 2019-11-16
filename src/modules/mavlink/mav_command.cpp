@@ -1,3 +1,4 @@
+#include <string>
 
 #include "helper.h"
 #include "controller.h"
@@ -19,6 +20,7 @@ MavlinkCommandManager::handle_message(const mavlink_message_t *msg)
 {
     // command int not supported
     if(msg->msgid == MAVLINK_MSG_ID_COMMAND_INT) {
+        spdlog::warn("MavlinkCommandManager::handle_message, mavlink command not supported");
         commandService.sendCmdAck(0, MAV_RESULT_UNSUPPORTED);
         return;
     }
@@ -133,6 +135,7 @@ MavlinkCommandManager::CommandService::CommandProgress::run() {
         context->setState(&context->commandEnd);
     }
     else if (context->cmdResult != EResult::MSP_PROGRESS) {
+        spdlog::error("CommandService::run, command failed: " + std::to_string(context->cmdResult));
         context->handleCmdErrorResultAndInit(context->cmdResult, context->currentCmd);
     }
 }

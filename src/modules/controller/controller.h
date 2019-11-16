@@ -2,15 +2,15 @@
 
 #include <list>
 #include <map>
-
+#include "spdlog/spdlog.h"
 #include "defines.h"
 #include "controller_def.h"
 #include "mav_mavlink.h"
 
 class MspController {
     
-    typedef void (*VehicleCmdCallback)(EVehicleCmd cmd, void* data, size_t len);
-    typedef struct VehicleData;
+    using VehicleCmdCallback = void (*)(EVehicleCmd cmd, void* data, size_t len);
+    using VehicleData = void*;
 
     struct State;
 
@@ -19,7 +19,7 @@ class MspController {
 
         VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) { });
 
-        void vehicleNotification(EVehicleNotification notification, VehicleData* data);
+        void vehicleNotification(EVehicleNotification notification, VehicleData data);
         
         void initialize(Mavlink* mavlink);
         
@@ -48,17 +48,13 @@ class MspController {
         {}
 
         static MspController *instance;
-        State *state;
+        State* state;
         
         std::map<int, std::vector<mavlink_mission_item_t>> missionItemMap;
         
         // State functions 
         State* getState() {return state; };
-        void setState(State *_state) {
-            _state->exit();
-            state = _state; 
-            state->entry();
-        };
+        void setState(State *_state);
 
         struct State {
             public:
@@ -76,7 +72,7 @@ class MspController {
                 virtual void exit(){};
     
                 // commands from drone
-                virtual void vehicleNotification(EVehicleNotification notification, VehicleData* data){}
+                virtual void vehicleNotification(EVehicleNotification notification, VehicleData data){}
         };
 
         class Init: public State {
@@ -100,7 +96,7 @@ class MspController {
                 Mission(MspController *context) : State(context) { };
                 void entry() override;
                 void exit() override;
-                void vehicleNotification(EVehicleNotification notification, VehicleData* data) override;
+                void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
                 EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
 
             private:
@@ -113,7 +109,7 @@ class MspController {
         class Command : public State {
             public:
                 Command(MspController *context) : State(context) {};
-                void vehicleNotification(EVehicleNotification notification, VehicleData* data) override;
+                void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
                 EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
         };
 

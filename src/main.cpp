@@ -1,5 +1,8 @@
-//#include <log4cpp/Category.hh>
-//#include <log4cpp/PropertyConfigurator.hh>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/rotating_file_sink.h"
 
 #include "mav_mavlink_udp.h"
 #include "controller.h"
@@ -19,7 +22,29 @@ const char* config_path = "/home/simon/UserConfig.txt";
 
 int main(int argc, char** argv) {
 	
+    try 
+    {   
+        std::vector<spdlog::sink_ptr> sinks;
+        sinks.push_back(std::make_shared<spdlog::sinks::ansicolor_stdout_sink_st>());
+        sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/msplog.txt"));
+        auto combined_logger = std::make_shared<spdlog::logger>("logger", begin(sinks), end(sinks));
+
+        // Log level
+        combined_logger->flush_on(spdlog::level::warn);
+        combined_logger->set_level(spdlog::level::info);
+
+        //register it if you need to access it globally
+        spdlog::register_logger(combined_logger);
+        spdlog::set_default_logger(combined_logger);
+    }
+    catch (const spdlog::spdlog_ex &ex)
+    {
+        std::cout << "Log init failed: " << ex.what() << std::endl;
+    }
+    spdlog::info("start app msp-onboard");
+
     #ifdef DJI_OSDK
+    spdlog::info("DJI OSDK available");
     const char* arg[3];
     arg[0] = argv[0];
     arg[1] = config_path;
@@ -32,6 +57,8 @@ int main(int argc, char** argv) {
     Vehicle* vehicle = linuxEnvironment.getVehicle();
     if (vehicle != nullptr)
     {
+        spdlog::info("DJI vehicle found");
+
         // Setup mavlink for DJI
         mavlinkDJI = new MavlinkDJI();
         std::thread threadMavlinkDJI = mavlinkDJI->start();
@@ -41,7 +68,7 @@ int main(int argc, char** argv) {
         setupDJIMission(vehicle, &linuxEnvironment);
     }
     else{
-        std::cout << "Vehicle not initialized, UDP simulation mode.\n";
+        spdlog::warn("Vehicle not initialized, try to start UDP simulation mode");
 
         // Setup mobile communication
         setupMSDKComm(NULL, &linuxEnvironment, NULL);
@@ -49,9 +76,10 @@ int main(int argc, char** argv) {
     }
     #endif
 
-    #ifdef MAVLKIN_UDP    
-    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
-    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
+    #ifdef MAVLKIN_UDP   
+    spdlog::info("mavlink udp available");
+    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
     std::thread threadMavlinkUDP = mavlinkUDP->start();
     #endif
 

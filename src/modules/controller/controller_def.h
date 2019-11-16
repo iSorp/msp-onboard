@@ -34,9 +34,9 @@ enum EResult {
 };
 
 
-struct waypointReachedData_t {
+struct waypointReachedData_t {        
     u_int16_t index;
-    float x;
-    float y;
-    float z;
+    float longitude;    // x /*!< unit: rad */
+    float latitude;     // y /*!< unit: rad */     
+    float altitude;     // z /*!< WGS 84 reference ellipsoid */
 };

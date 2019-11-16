@@ -6,6 +6,7 @@
 #include <linux/i2c-dev.h>
 #endif
 
+#include "spdlog/spdlog.h"
 #include "bmp280_defs.h"
 #include "bmp280i2c.h"
 #include "sensors.h"
@@ -14,22 +15,23 @@
 static int device;   
 
 // I2C bus 1
-const char *BUS = "/dev/i2c-1";
+static const char *BUS = "/dev/i2c-1";
 
-int
-initI2C() {
+//-------------------------------------------------------------
+// Singleton Class MspSensors 
+//-------------------------------------------------------------
+MspSensors *MspSensors::instance = 0;
 
-    // Open i2c Bus
-    if((device = open(BUS, O_RDWR)) < 0)
-    {
-        std::cout << "Failed to open i2c bus";
-        return 1;
-    }
-    std::cout << "Open i2c Bus :" + device;
+MspSensors *
+MspSensors::getInstance() {
+    if (!instance)
+        instance = new MspSensors;
+    return instance;
 }
 
+
 int 
-initializeSensors() {
+MspSensors::initialize() {
     int ret = initI2C();
     if (ret == 0){
         ret = initBmc280(device);
@@ -37,9 +39,23 @@ initializeSensors() {
     return ret;
 }
 
-sensor_t 
-getSensorValue(int sensor_id){
-    sensor_t sensor;
+int
+MspSensors::initI2C() {
+
+    // Open i2c Bus
+    if((device = open(BUS, O_RDWR)) < 0)
+    {
+        spdlog::error("Failed to open i2c bus");
+        return 1;
+    }
+    spdlog::info("Open i2c Bus :" + std::to_string(device));
+}
+
+
+
+SensorValue
+MspSensors::getSensorValue(int sensor_id){
+    SensorValue sensor;
     switch (sensor_id){
     case 1:
         sensor.id = sensor_id;
@@ -50,6 +66,7 @@ getSensorValue(int sensor_id){
         sensor.value = std::to_string(readPressure());
         break;
     default:
+        spdlog::warn("getSensorValue(" + std::to_string(sensor_id) + "), sensor not found");
         sensor.id = -1;
         sensor.value = "";
     }

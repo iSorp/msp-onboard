@@ -14,8 +14,7 @@
 class MavlinkDJI : public Mavlink {
 
     // Typ for callback function which the data actually sends to the receiver
-    typedef void 
-    (*SendDataCallback)(uint8_t* data, uint8_t len);
+    using SendDataCallback = void (*)(uint8_t* data, uint8_t len);
 
     public: 
         MavlinkDJI() { }

@@ -79,12 +79,27 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
 
 void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
 
-    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED);
+    waypointReachedData_t wpdata;
+
+    // Current waypoint data
+    ACK::WayPointReachedData wpReachedData = recvFrame.recvData.wayPointReachedData;
+
+    wpdata.index = wpReachedData.waypoint_index;
+
+    // Global position retrieved via subscription
+    Telemetry::TypeMap<TOPIC_GPS_FUSED>::type subscribeGPosition;
+    subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
+    wpdata.latitude  = subscribeGPosition.latitude;
+    wpdata.longitude = subscribeGPosition.longitude;
+    wpdata.altitude  = subscribeGPosition.altitude;
+
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
 }
 
 void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+    waypointReachedData_t wpdata;
 
-    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED);
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
 }
 
 
@@ -167,7 +182,7 @@ createWaypoints() {
 
     for (int i = 1; i < MspController::getInstance()->getMissionItemCount(); i++)
     {
-        mavlink_mission_item_t* item = MspController::getInstance()->getMissionItem(i);
+        mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
         if (item){
             WayPointSettings  wp;
             WayPointSettings* prevWp = &wp_list[i - 1];

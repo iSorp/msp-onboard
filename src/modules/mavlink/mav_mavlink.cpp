@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <list> 
 #include <iterator> 
-
+#include "spdlog/spdlog.h"
 #include "mav_mavlink.h"
 #include "helper.h"
 
@@ -83,6 +83,7 @@ Mavlink::~Mavlink() {
 
 std::thread Mavlink::start() 
 {
+	spdlog::info("start mavlink event loop");
     instance_id = instanceList.size();
     set_channel();
     instanceList.push_back(this);
@@ -93,6 +94,7 @@ std::thread Mavlink::start()
             object->run(); 
         }, this);
 
+	spdlog::info("mavlink event loop started");
     return t;
 } 
 

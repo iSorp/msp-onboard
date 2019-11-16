@@ -29,10 +29,12 @@ MavlinkFtpManager::handle_message(const mavlink_message_t *msg)
 
         // Initialize state machine iff no session exists (only one sessio possible)
         if (fileUploadService.session <= 0) {
+            spdlog::info("MavlinkFtpManager::handle_message,  start file upload");
             fileUploadService.setState(&fileUploadService.fileUploadInit);
         }
         // send error on file open request
         else if (ftp.payload[CODE] == OpenFileRO) {
+            spdlog::warn("MavlinkFtpManager::handle_message, no session available");
             fileUploadService.sendNakFailure(msg->sysid, msg->compid, NOSESS);
         }
 
@@ -164,6 +166,7 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
 
     // message received: OpenFileRO( data[0]=filePath, size=len(filePath) )
     if (ftp.payload[CODE] == OpenFileRO) {
+        spdlog::debug("FileUploadInit::handle_message, opening file");
 
         context->transferSysId  = msg->sysid;
         context->transferCompId = msg->compid;
@@ -173,6 +176,7 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
         context->cpath = (char*)&ftp.payload[DATA];
         context->file.open(string(context->cpath), ios::binary);
         if (context->file.is_open()) {
+            spdlog::debug("FileUploadInit::handle_message, file found and open");
             
             // get length of file:
             context->file.seekg (0, context->file.end);
@@ -192,7 +196,7 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
             context->setState(&context->fileUploadWrite);
         }
         else {
-            printf("file not open");
+            spdlog::warn("FileUploadInit::handleMessage, file not open");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FNF);
             
             // initialize state machine (closes session, closes file)
@@ -206,19 +210,6 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
 // Class FileUploadWrite 
 //-------------------------------------------------------------
 
-std::string fetchDataFromDB(std::string recvdData)
-{
-    /*context->file.seekg(offset); 
-    if (context->file) {
-        context->file.read(buffer, ftp.payload[SIZE]);
-        int size = context->file.gcount();
-        context->sendData(buffer, size);
-    }*/
- 
-	//Do stuff like creating DB Connection and fetching Data
-	return "DB_" + recvdData;
-}
-
 void
 MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavlink_message_t *msg) { 
     mavlink_file_transfer_protocol_t ftp;
@@ -228,9 +219,11 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
     // if no message has transfered yet
     if (ftp.payload[CODE] == OpenFileRO) {
         if (context->seq > 0) {
+            spdlog::debug("FileUploadWrite::FileUploadWrite, OpenFileRO already received but no data transfered yet -> send open session");
             context->sendOpenSession();
         }
         else {
+            spdlog::warn("FileUploadWrite::handleMessage, file upload already started: OpenFileRO and seq > 0");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FAIL);
             // initialize state machine (closes session, closes file)
             context->setState(&context->fileUploadInit);
@@ -241,7 +234,6 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
     if (ftp.payload[CODE] == ReadFile) {
 
         if (context->file.is_open()) {
-            
             char buffer[DATA_SIZE];
 
             // save last received code for later responses
@@ -251,9 +243,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
             // find file offset, read and write data
             uint32_t offset = *(uint32_t*)&ftp.payload[OFFSET];
 
-            //std::future<std::string> resultFromDB = std::async(std::launch::async, fetchDataFromDB, "Data"); 
-
-
+            spdlog::debug("FileUploadWrite::handle_message, file open, send data offset: " + std::to_string(offset));
 
             context->file.seekg(offset); 
             if (context->file) {
@@ -268,6 +258,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
             }
         }
         else {
+            spdlog::warn("FileUploadWrite::handle_message, file not anymore open");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FNF);
         }
         
@@ -292,7 +283,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::run() {
             ++context->repeatCounter;
         }
         else {
-            printf("max retries reached");
+            spdlog::warn("FileUploadWrite::run, max retries reached");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FAIL);
             // initialize state machine (closes session, closes file)
             context->setState(&context->fileUploadInit);
@@ -316,6 +307,8 @@ MavlinkFtpManager::FileUploadService::FileUploadEnd::handleMessage(const mavlink
 
     // Wait for message TerminateSession(session)
     if (ftp.payload[CODE] == TERM) {
+        spdlog::info("FileUploadEnd::handle_message, file upload success");
+
         context->sendAckData();
 
         // intialize state machine, close session
@@ -332,7 +325,7 @@ MavlinkFtpManager::FileUploadService::FileUploadEnd::run() {
             ++context->repeatCounter;
         }
         else {
-            printf("max retries reached");
+            spdlog::warn("FileUploadEnd::run, max retries reached");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FAIL);
             // initialize state machine (closes session, closes file)
             context->setState(&context->fileUploadInit);

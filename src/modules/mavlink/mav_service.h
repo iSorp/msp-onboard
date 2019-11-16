@@ -2,6 +2,7 @@
 
 #include <typeinfo>
 
+#include "spdlog/spdlog.h"
 #include "defines.h"
 #include "mavlink_types.h"
 
@@ -46,6 +47,7 @@ struct MavlinkService {
         ServiceStateInterface* getState() {return state; };
 
         void setState(ServiceStateInterface *_state) {
+            spdlog::debug("MavlinkService::setState(" + std::string(typeid(*_state).name()) + ")");
             _state->exit();
             state = _state;
             state->entry();

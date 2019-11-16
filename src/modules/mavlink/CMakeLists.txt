@@ -7,9 +7,14 @@ set (mavlink_src
     mav_ftp.cpp
     )
 
+FILE(GLOB COMMMON_LIB_HEADERS
+    "${PROJECT_SOURCE_DIR}/include"
+    "${PROJECT_SOURCE_DIR}/lib"
+    )
 
 add_library(mavlink "${mavlink_src}")
 
+target_link_libraries(mavlink PRIVATE spdlog::spdlog)
+target_link_libraries(mavlink PRIVATE controller)
 target_include_directories (mavlink PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(mavlink PRIVATE controller)

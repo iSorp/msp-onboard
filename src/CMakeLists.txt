@@ -64,7 +64,7 @@ add_subdirectory(modules/sensors)
 
 # executable
 add_executable(msp-onboard main.cpp)
-add_library(msp-onboard log4cpp ) 
+target_link_libraries(msp-onboard spdlog::spdlog)
 target_link_libraries(msp-onboard mavlink)
 target_link_libraries(msp-onboard controller)
 target_link_libraries(msp-onboard sensors)

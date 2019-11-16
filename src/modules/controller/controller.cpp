@@ -1,5 +1,6 @@
 #include "controller.h"
 
+
 //-------------------------------------------------------------
 // Singleton Class MspController 
 //-------------------------------------------------------------
@@ -14,12 +15,20 @@ MspController::getInstance() {
 
 void
 MspController::initialize(Mavlink* mavlink) {
-    
     this->mavlink = mavlink;
 
     // State machine entrypoint
     setState(&stateInit);
 }
+
+void 
+MspController::setState(State *_state) {
+
+    spdlog::debug("MSPController::setState(" + std::string(typeid(*_state).name()) + ")");
+    _state->exit();
+    state = _state; 
+    state->entry();
+};
 
 /*
 * Execute state command
@@ -33,7 +42,7 @@ MspController::cmdExecute(uint16_t command, mavlink_command_long_t cmd) {
 * Notification from vehicle
 */
 void
-MspController::vehicleNotification(EVehicleNotification notification, VehicleData* data) {
+MspController::vehicleNotification(EVehicleNotification notification, VehicleData data) {
     state->vehicleNotification(notification, data);
 }
        
@@ -82,11 +91,10 @@ MspController::missionDelete() {
     if (typeid(*state) == typeid(MspController::Idle))
     {
         missionItemMap.clear();
-        std::cout << "mission deleted";
         return EResult::MSP_SUCCESS;
     }
     else {
-        std::cout << "controller in wrong  state";
+        spdlog::warn("MSPController::missionDelete, wrong state");
         return EResult::MSP_FAILED;
     }
 }
@@ -103,9 +111,11 @@ MspController::missionAddItem(int key, mavlink_mission_item_t wp){
         }
         else {
             res = EResult::MSP_FAILED;
+            spdlog::error("MSPController::missionAddItem, size > MAX_MISSION_ITEM_COUNT");
         }   
     }
     else {
+        spdlog::warn("MSPController::missionAddItem, wrong state");
         res = EResult::MSP_FAILED;
     }
     return res;

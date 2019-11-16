@@ -17,25 +17,27 @@ MavlinkUDP::~MavlinkUDP() {
 
 void
 MavlinkUDP::init(){
-  memset(&loc_addr, 0, sizeof(loc_addr));
+    spdlog::info("MavlinkUDP::init");
+    memset(&loc_addr, 0, sizeof(loc_addr));
 	loc_addr.sin_family = AF_INET;
 	loc_addr.sin_addr.s_addr = INADDR_ANY;
 	loc_addr.sin_port = htons(src_port);
 
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+        spdlog::error("MavlinkUDP::init, " + EXIT_FAILURE);
 		exit(EXIT_FAILURE);
 	}
 
 	if (-1 == bind(socket_fd,(struct sockaddr *)&loc_addr, sizeof(struct sockaddr)))
     {
-		perror("error bind failed");
+        spdlog::error("MavlinkUDP::init, error bind failed");
 		close(socket_fd);
 		exit(EXIT_FAILURE);
     } 
 
 	if (fcntl(socket_fd, F_SETFL, O_NONBLOCK | O_ASYNC) < 0)
     {
-		fprintf(stderr, "error setting nonblocking: %s\n", strerror(errno));
+        spdlog::error("MavlinkUDP::init, error setting nonblocking " + errno);
 		close(socket_fd);
 		exit(EXIT_FAILURE);
     }

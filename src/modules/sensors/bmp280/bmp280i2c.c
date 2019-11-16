@@ -10,6 +10,7 @@
     #include <linux/i2c-dev.h>
 #endif
 
+#include "spdlog/spdlog.h"
 #include "bmp280.h"
 #include "bmp280i2c.h"
 
@@ -86,7 +87,7 @@ softReset() {
     // Reset
 	int8_t rslt = bmp280_soft_reset(&bmp280);
     if (rslt != BMP280_OK){
-        std::cout << "Unable to force reset :" << rslt;
+        spdlog::error("bmp280.softReset, Unable to force reset");
         return rslt;
 	}
     return 0;
@@ -97,7 +98,7 @@ setPowerMode(int8_t mode) {
     // Set normal power mode
 	int8_t rslt = bmp280_set_power_mode(mode, &bmp280);
     if (rslt != BMP280_OK){
-        std::cout << "Unable to set power mode :" << rslt;
+        spdlog::error("bmp280.setPowerMode, Unable to set power mode: " + std::to_string(rslt));
         return rslt;
 	}
     return 0;
@@ -108,7 +109,7 @@ getPowerMode(uint8_t *mode) {
     // Get normal power mode
 	int8_t rslt = bmp280_get_power_mode(mode, &bmp280);
     if (rslt != BMP280_OK){
-        std::cout << "Unable to get power mode: " << rslt;
+        spdlog::error("bmp280.getPowerMode, Unable to get power mode: " + std::to_string(rslt));
         return rslt;
 	}
     return 0;
@@ -119,7 +120,7 @@ setConfiguration(struct bmp280_config *conf) {
     // Overwrite settings
 	int8_t rslt = (int)bmp280_set_config(conf, &bmp280);
 	if (rslt != BMP280_OK){
-        std::cout << "Unable to set config :" << rslt;
+        spdlog::error("bmp280.setConfiguration, Unable to set config: " + std::to_string(rslt));
         return rslt;
 	}
     return 0;
@@ -129,7 +130,7 @@ getConfiguration(struct bmp280_config *conf) {
     // Read current settings
 	int8_t rslt = (int)bmp280_get_config(conf, &bmp280);
 	if (rslt != BMP280_OK) {
-        std::cout <<  "Unable to get config :" << rslt;
+        spdlog::error("bmp280.getConfiguration, Unable to get config: " + std::to_string(rslt));
         return rslt;
 	}
     return 0;
@@ -146,13 +147,12 @@ initBmc280(int dev) {
     // get I2C sensor
     int ret = ioctl(device, I2C_SLAVE, BMP280_I2C_ADDR_SEC);
     if (ret = -1){
-        std::cout << "failed to get I2C sensor: " << ret;
+        spdlog::error("failed to get I2C sensor");
         return 1;
     }
-    std::cout << "get I2C sensor: " << ret;
+    spdlog::info("get I2C sensor: " + std::to_string(ret));
     #endif
     
-   
    
     bmp280.write    = BMP280_I2C_bus_write;
     bmp280.read 	= BMP280_I2C_bus_read;
@@ -165,7 +165,7 @@ initBmc280(int dev) {
     printf("initialize bmp280\n");
 	int8_t rslt = bmp280_init(&bmp280);
 	if (rslt != BMP280_OK) {  
-        std::cout <<  "Unable to initialize bmp280 :" << rslt;
+        spdlog::error("Unable to initialize bmp280: " + std::to_string(rslt));
         return rslt;
 	}
 
@@ -185,13 +185,13 @@ initBmc280(int dev) {
     printf("set mode bmp280\n");
 	rslt = bmp280_set_power_mode(BMP280_NORMAL_MODE, &bmp280);
     if (rslt != BMP280_OK){
-        std::cout << "Unable to set power mode :" << rslt;
+        spdlog::error("Unable to set power mode: " + std::to_string(rslt));
         return rslt;
 	}
 
     // get computed meassure time
     meas_dur = bmp280_compute_meas_time(&bmp280);
-    std::cout << "set power mode %hhx: " << meas_dur;
+    spdlog::info("set power mode %hhx: " + meas_dur);
     return 0;
 }
 
@@ -208,12 +208,12 @@ BMP280_I2C_bus_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t l
 {
     int8_t error = 0;
     if (write(device, &reg_addr, REG_ADDR_SIZE) != REG_ADDR_SIZE) {
-        std::cout << "Unable to write the reg_addr to i2c bus for writing";
+        spdlog::error("Unable to write the reg_addr to i2c bus for writing");
         error = BMP280_WRITE_REG;
     }
 
     if (write(device, data, len) != len) {
-        std::cout << "Unable to write data to i2c bus";
+        spdlog::error("Unable to write data to i2c bus");
         error = BMP280_WRITE_DATA;
     }
    
@@ -225,12 +225,12 @@ BMP280_I2C_bus_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t le
 {
 	int8_t error = 0;
     if (write(device, &reg_addr, REG_ADDR_SIZE) != REG_ADDR_SIZE) {
-        std::cout << "Unable to write the reg_addr to i2c bus for reading";
+        spdlog::error("Unable to write the reg_addr to i2c bus for reading");
         error = BMP280_READ_REG;
     }
     if(read(device, data, len) != len)
     {
-        std::cout << "Unable to read data from i2c bus";
+        spdlog::error("Unable to read data from i2c bus");
         error = BMP280_READ_DATA;
     }
 	return error;
