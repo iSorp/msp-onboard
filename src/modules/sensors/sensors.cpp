@@ -7,12 +7,10 @@
 #endif
 
 #include "spdlog/spdlog.h"
-#include "bmp280_defs.h"
 #include "bmp280i2c.h"
-#include "sensors.h"
 
- // devicehandle
-static int device;   
+ // i2c devicehandle
+static int device;
 
 // I2C bus 1
 static const char *BUS = "/dev/i2c-1";
@@ -29,12 +27,15 @@ MspSensors::getInstance() {
     return instance;
 }
 
-
 int 
 MspSensors::initialize() {
     int ret = initI2C();
     if (ret == 0){
-        ret = initBmc280(device);
+        Bmp280 bmp280;
+        bmp280.initBmc280(device);
+
+        sensorMap[1] = bmp280.temperature;
+        sensorMap[2] = bmp280.pressure;
     }
     return ret;
 }
@@ -52,23 +53,18 @@ MspSensors::initI2C() {
 }
 
 
-
 SensorValue
 MspSensors::getSensorValue(int sensor_id){
     SensorValue sensor;
-    switch (sensor_id){
-    case 1:
+    sensor.id = -1;
+    sensor.value = "";
+
+    if (sensorMap.count(sensor_id) > 0){
         sensor.id = sensor_id;
-        sensor.value = std::to_string(readTemperature());
-        break;
-    case 2:
-        sensor.id = sensor_id;
-        sensor.value = std::to_string(readPressure());
-        break;
-    default:
+        sensor.value = sensorMap[sensor_id].getValue();
+    }
+    else {
         spdlog::warn("getSensorValue(" + std::to_string(sensor_id) + "), sensor not found");
-        sensor.id = -1;
-        sensor.value = "";
     }
     return sensor;
 }

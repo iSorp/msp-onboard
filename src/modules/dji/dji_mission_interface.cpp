@@ -21,16 +21,16 @@ const int DEFAULT_PACKAGE_INDEX = 0;
 //-------------------------------------------------------------
 // Static funcitions
 //-------------------------------------------------------------
-static void 
+static EResult 
 cmdCallback(EVehicleCmd cmd, void* data, size_t len);
 
-static void
+static EResult
 commandDataToOSDK();
 
-static void
+static EResult
 runWaypointMission(); 
 
-static void
+static EResult
 uploadWaypoints();
 
 void
@@ -59,22 +59,27 @@ setupDJIMission(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment)
 //-------------------------------------------------------------
 // Calback command function from/To MSPController
 //-------------------------------------------------------------
-void 
+EResult 
 cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
+    EResult ret = EResult::MSP_FAILED; 
     switch (cmd)
     {
     case EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS:
         createWaypoints();
+        ret = EResult::MSP_SUCCESS;
         break;
 
     case EVehicleCmd::MSP_CMD_MISSION_START:
-        uploadWaypoints();
-        runWaypointMission();
+        ret = uploadWaypoints();
+        if (ret == EResult::MSP_SUCCESS){
+            ret = runWaypointMission();
+        }
         break;
     
     default:
         break;
     }
+    return ret;
 }
 
 void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
@@ -106,8 +111,9 @@ void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData u
 //-------------------------------------------------------------
 // Mission upload and running
 //-------------------------------------------------------------
-void
+EResult
 uploadWaypoints() {
+    EResult ret = EResult::MSP_FAILED;
 
     // Waypoint Mission : Initialization
     WayPointInitSettings fdata;
@@ -123,6 +129,7 @@ uploadWaypoints() {
         if (ACK::getError(initAck))
         {
             ACK::getErrorCodeMessage(initAck, __func__);
+            spdlog::error("uploadWaypoints, fail");
         }
 
         for (std::vector<WayPointSettings>::iterator wp = wp_list.begin(); wp != wp_list.end(); ++wp)
@@ -135,12 +142,19 @@ uploadWaypoints() {
         // Add callback for waypoint management
         vehicle->missionManager->wpMission->setWaypointCallback(wayPointCallback, &wayPointFinishData);
         vehicle->missionManager->wpMission->setWaypointEventCallback(wayPointEventCallback, &eventWayPointFinishData);
+        ret = EResult::MSP_SUCCESS;
     }
+    else {
+        spdlog::warn("uploadWaypoints, vehicle not initialized");
+    }
+
+    return ret;
 }
 
-void
+EResult
 runWaypointMission() {
-    
+    EResult ret = EResult::MSP_FAILED;
+
     // Waypoint Mission: Start
     if (vehicle)
     {
@@ -148,12 +162,18 @@ runWaypointMission() {
         if (ACK::getError(startAck))
         {
             ACK::getErrorCodeMessage(startAck, __func__);
+            spdlog::error("runWaypointMission, fail");
         }
         else
         {
-            std::cout << "Starting Waypoint Mission.\n";
+            ret = EResult::MSP_SUCCESS;
+            spdlog::info("runWaypointMission");
         }
     }
+    else {
+        spdlog::warn("runWaypointMission, vehicle not initialized");
+    }
+    return ret;
 }
 
 //-------------------------------------------------------------
@@ -195,7 +215,6 @@ createWaypoints() {
         }
     }
 }
-
 
 void
 setWaypointDefaults(WayPointSettings* wp)

@@ -6,6 +6,7 @@ set (sensors_src
 add_library(sensors "${sensors_src}")
 add_subdirectory(bmp280)
 
+
 target_link_libraries(sensors PRIVATE spdlog::spdlog)
 target_link_libraries(sensors PRIVATE bmp280)
 

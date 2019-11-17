@@ -7,35 +7,6 @@
 #include "controller.h"
 #include "sensors.h"
 
-/*
-static void 
-writeWpResult(waypointReachedData_t* wpdata, int num, sensor_t* sensor...) {
-    nlohmann::json j;
-    va_list valist;
-    sensor_t* s;
-    va_start(valist, num);
-
-    nlohmann::json sensor_array = nlohmann::json::array();
-
-    for (int i = 0; i < num; i++) {
-        s =  va_arg(valist, sensor_t*);
-        std::string strIndex = std::to_string(i);
-        sensor_array.push_back({
-            {"id", s->id},
-            {"value", s->value},
-        });
-    }
-    j["sensors"] = sensor_array;
-    
-    j["x"] = wpdata->x;
-    j["y"] = wpdata->y;
-    j["z"] = wpdata->z;
-
-    std::ofstream ofs("wp" + std::to_string(wpdata->index) + "data.json");
-    ofs << std::setw(4) << j << std::endl;
-}
-*/
-
 static void 
 writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors) {
     nlohmann::json j;
@@ -95,43 +66,55 @@ MspController::Mission::cmdExecute(uint16_t command, mavlink_command_long_t cmd)
 EResult 
 MspController::Mission::missionStart() {
     spdlog::info("MspController::Mission::missionStart");
-
+    EResult ret = EResult::MSP_FAILED;
     // Upload mission data
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS, NULL, 0);
+    ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS, NULL, 0);
+    if (ret != EResult::MSP_SUCCESS){
+        context->setState(&context->stateIdle);
+        return ret;
+    }
 
     // Start mission
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_START, NULL, 0);
-    return EResult::MSP_SUCCESS;
+    ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_START, NULL, 0);
+    if (ret != EResult::MSP_SUCCESS){
+        context->setState(&context->stateIdle);
+        return ret;
+    }
+
+    return ret;
 }
 
 EResult 
 MspController::Mission::missionPauseContinue(bool pause) {
     spdlog::info("MspController::Mission::missionPauseContinue(" + std::to_string(pause) + ")");
+    EResult ret = EResult::MSP_FAILED;
 
     if (pause) {
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
+        ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
     }
     else {
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
+        ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
     }    
 
-    return EResult::MSP_SUCCESS;
+    return ret;
 }
 
 EResult 
 MspController::Mission::missionStop() {
     spdlog::info("MspController::Mission::missionStop");
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_STOP, NULL, 0);
+    EResult ret = EResult::MSP_FAILED;
+    ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_STOP, NULL, 0);
 
-    return EResult::MSP_SUCCESS;
+    return ret;
 }
 
 void 
 MspController::Mission::vehicleNotification(EVehicleNotification notification, VehicleData data) {
     spdlog::info("MspController::Mission::vehicleNotification(" + std::to_string(notification) + ")");
     if (notification == EVehicleNotification::MSP_VHC_WAY_POINT_REACHED) {
+        
         // Pause mission
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
+        EResult ret = EResult::MSP_FAILED;MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
 
         // Handle wpreached data
         waypointReachedData_t* wpdata = static_cast<waypointReachedData_t*>(data);     
@@ -160,17 +143,31 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification, V
             }
         }
 
+        bool nextWPavailable = false;
+        bool optionOrigin = false;
+
         // check for next WP
-
-
-        // resume mission
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
-
-        // if option to origin -> execute
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
-
-        // otherwise hower and set idle state
-        context->setState(&context->stateIdle);
+        if (nextWPavailable) {
+            // resume mission
+            ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
+            if (ret != EResult::MSP_SUCCESS){
+                context->setState(&context->stateIdle);
+                return;
+            }
+        }
+        else {
+            // if option to origin -> execute
+            if (optionOrigin){
+                ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
+                if (ret != EResult::MSP_SUCCESS){
+                    context->setState(&context->stateIdle);
+                    return;
+                }
+            } else{
+                // otherwise hower and set idle state
+                context->setState(&context->stateIdle);
+            }
+        }
     }
 }
 

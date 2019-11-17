@@ -35,33 +35,57 @@ SDI:	i2c Data line
 
 #define REG_ADDR_SIZE 2
 
- // devicehandle
-static int device;   
+// i2c devicehandle
+static int device;  
 
 // Meassuring duration time
 static uint8_t meas_dur;
 
-int altitude = 500;
+static int altitude = 500;
+static struct bmp280_dev bmp280;
 
-/********************** Static function declarations ************************/
-
-static int8_t 
-BMP280_I2C_bus_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
-
-static int8_t 
-BMP280_I2C_bus_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
+/****************** Static Function Definitions *******************************/
 
 static void 
-BMP280_delay_msek(uint32_t msek);
+BMP280_delay_msek(uint32_t msek)
+{
+    sleep(msek/1000);
+}
 
-//struct bmp280_dev bmp280;
+static int8_t 
+BMP280_I2C_bus_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len)
+{
+    int8_t error = 0;
+    if (write(device, &reg_addr, REG_ADDR_SIZE) != REG_ADDR_SIZE) {
+        spdlog::error("Unable to write the reg_addr to i2c bus for writing");
+        error = BMP280_WRITE_REG;
+    }
 
-struct bmp280_dev bmp280;
+    if (write(device, data, len) != len) {
+        spdlog::error("Unable to write data to i2c bus");
+        error = BMP280_WRITE_DATA;
+    }
+   
+	return error;
+}
 
+static int8_t 
+BMP280_I2C_bus_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len)
+{
+	int8_t error = 0;
+    if (write(device, &reg_addr, REG_ADDR_SIZE) != REG_ADDR_SIZE) {
+        spdlog::error("Unable to write the reg_addr to i2c bus for reading");
+        error = BMP280_READ_REG;
+    }
+    if(read(device, data, len) != len)
+    {
+        spdlog::error("Unable to read data from i2c bus");
+        error = BMP280_READ_DATA;
+    }
+	return error;
+}
 
-/****************** User Function Definitions *******************************/
-
-double 
+static double 
 readTemperature() {
     double temp;
     struct bmp280_uncomp_data ucomp_data;
@@ -71,7 +95,7 @@ readTemperature() {
     return temp;
 }
 
-double 
+static double 
 readPressure() {
     double press;
     struct bmp280_uncomp_data ucomp_data;
@@ -82,19 +106,43 @@ readPressure() {
 	return pressure_nn;
 }
 
-int 
-softReset() {
-    // Reset
-	int8_t rslt = bmp280_soft_reset(&bmp280);
-    if (rslt != BMP280_OK){
-        spdlog::error("bmp280.softReset, Unable to force reset");
+//-------------------------------------------------------------
+// Class Bmp280 
+//-------------------------------------------------------------
+int
+Bmp280::setConfiguration(struct bmp280_config *conf) {
+    // Overwrite settings
+	int8_t rslt = (int)bmp280_set_config(conf, &bmp280);
+	if (rslt != BMP280_OK){
+        spdlog::error("bmp280.setConfiguration, Unable to set config: " + std::to_string(rslt));
+        return rslt;
+	}
+    return 0;
+}
+int
+Bmp280::getConfiguration(struct bmp280_config *conf) {
+    // Read current settings
+	int8_t rslt = (int)bmp280_get_config(conf, &bmp280);
+	if (rslt != BMP280_OK) {
+        spdlog::error("bmp280.getConfiguration, Unable to get config: " + std::to_string(rslt));
         return rslt;
 	}
     return 0;
 }
 
 int 
-setPowerMode(int8_t mode) {
+Bmp280::getPowerMode(uint8_t mode) {
+    // Get normal power mode
+	int8_t rslt = bmp280_get_power_mode(&mode, &bmp280);
+    if (rslt != BMP280_OK){
+        spdlog::error("bmp280.getPowerMode, Unable to get power mode: " + std::to_string(rslt));
+        return rslt;
+	}
+    return 0;
+}
+
+int 
+Bmp280::setPowerMode(uint8_t mode) {
     // Set normal power mode
 	int8_t rslt = bmp280_set_power_mode(mode, &bmp280);
     if (rslt != BMP280_OK){
@@ -105,32 +153,11 @@ setPowerMode(int8_t mode) {
 }
 
 int 
-getPowerMode(uint8_t *mode) {
-    // Get normal power mode
-	int8_t rslt = bmp280_get_power_mode(mode, &bmp280);
+Bmp280::softReset() {
+    // Reset
+	int8_t rslt = bmp280_soft_reset(&bmp280);
     if (rslt != BMP280_OK){
-        spdlog::error("bmp280.getPowerMode, Unable to get power mode: " + std::to_string(rslt));
-        return rslt;
-	}
-    return 0;
-}
-
-int
-setConfiguration(struct bmp280_config *conf) {
-    // Overwrite settings
-	int8_t rslt = (int)bmp280_set_config(conf, &bmp280);
-	if (rslt != BMP280_OK){
-        spdlog::error("bmp280.setConfiguration, Unable to set config: " + std::to_string(rslt));
-        return rslt;
-	}
-    return 0;
-}
-int
-getConfiguration(struct bmp280_config *conf) {
-    // Read current settings
-	int8_t rslt = (int)bmp280_get_config(conf, &bmp280);
-	if (rslt != BMP280_OK) {
-        spdlog::error("bmp280.getConfiguration, Unable to get config: " + std::to_string(rslt));
+        spdlog::error("bmp280.softReset, Unable to force reset");
         return rslt;
 	}
     return 0;
@@ -140,7 +167,7 @@ getConfiguration(struct bmp280_config *conf) {
 *  Initialize the Bmp280 sensor.
 */
 int
-initBmc280(int dev) {
+Bmp280::initBmc280(int dev) {
     device = dev;
 
     #if defined(__linux__)
@@ -153,7 +180,6 @@ initBmc280(int dev) {
     spdlog::info("get I2C sensor: " + std::to_string(ret));
     #endif
     
-   
     bmp280.write    = BMP280_I2C_bus_write;
     bmp280.read 	= BMP280_I2C_bus_read;
     bmp280.intf 	= BMP280_I2C_INTF;
@@ -195,43 +221,29 @@ initBmc280(int dev) {
     return 0;
 }
 
-/****************** Static Function Definitions *******************************/
-
-static void 
-BMP280_delay_msek(uint32_t msek)
-{
-    sleep(msek/1000);
+//-------------------------------------------------------------
+// Class Bmp280Temperature 
+//-------------------------------------------------------------
+std::string 
+Bmp280Temperature::getValue() {
+    return std::to_string(readTemperature());
 }
 
-static int8_t 
-BMP280_I2C_bus_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len)
-{
-    int8_t error = 0;
-    if (write(device, &reg_addr, REG_ADDR_SIZE) != REG_ADDR_SIZE) {
-        spdlog::error("Unable to write the reg_addr to i2c bus for writing");
-        error = BMP280_WRITE_REG;
-    }
-
-    if (write(device, data, len) != len) {
-        spdlog::error("Unable to write data to i2c bus");
-        error = BMP280_WRITE_DATA;
-    }
-   
-	return error;
+int
+Bmp280Temperature::getStatus() {
+    return 0;
 }
 
-static int8_t 
-BMP280_I2C_bus_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len)
-{
-	int8_t error = 0;
-    if (write(device, &reg_addr, REG_ADDR_SIZE) != REG_ADDR_SIZE) {
-        spdlog::error("Unable to write the reg_addr to i2c bus for reading");
-        error = BMP280_READ_REG;
-    }
-    if(read(device, data, len) != len)
-    {
-        spdlog::error("Unable to read data from i2c bus");
-        error = BMP280_READ_DATA;
-    }
-	return error;
+
+//-------------------------------------------------------------
+// Class Bmp280Pressure 
+//-------------------------------------------------------------
+std::string 
+Bmp280Pressure::getValue() {
+    return std::to_string(readPressure());
+}
+
+int
+Bmp280Pressure::getStatus() {
+    return 0;
 }

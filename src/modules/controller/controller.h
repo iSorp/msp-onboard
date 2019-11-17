@@ -9,7 +9,7 @@
 
 class MspController {
     
-    using VehicleCmdCallback = void (*)(EVehicleCmd cmd, void* data, size_t len);
+    using VehicleCmdCallback = EResult (*)(EVehicleCmd cmd, void* data, size_t len);
     using VehicleData = void*;
 
     struct State;
@@ -17,12 +17,14 @@ class MspController {
     public:
         static MspController *getInstance();
 
-        VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) { });
-
+        VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) -> EResult{ });
         void vehicleNotification(EVehicleNotification notification, VehicleData data);
         
         void initialize(Mavlink* mavlink);
+        MAV_STATE getMavState();
+        uint8_t getMavMode();
         
+
         // user commands
         EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd);
 

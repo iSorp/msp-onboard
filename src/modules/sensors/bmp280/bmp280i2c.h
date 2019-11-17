@@ -1,25 +1,46 @@
+#pragma once
+
+#include <string>
+#include "sensors.h"
 #include "bmp280_defs.h"
 
-int
-initBmc280(int dev);
+class Bmp280;
 
-int 
-softReset();
+class Bmp280Temperature : public Sensor {
+    public:
+        Bmp280Temperature(Bmp280* board) : board(board) {}
+        int getStatus() override;
+        std::string getValue() override;
 
-int 
-setPowerMode(int8_t mode);
+    private:
+        Bmp280* board;
+};
 
-int 
-getPowerMode(const int8_t *mode);
+class Bmp280Pressure : public Sensor {
+    public:
+        Bmp280Pressure(Bmp280* board) : board(board) {}
+        int getStatus() override;
+        std::string getValue() override;
 
-int
-setConfiguration(struct bmp280_config *conf);
+    private:
+        Bmp280* board;
+};
 
-int
-getConfiguration(struct bmp280_config *conf);
+class Bmp280 {
 
-double 
-readTemperature();
+    public:
+        Bmp280() : 
+            temperature(this),
+            pressure(this)
+        {}
 
-double 
-readPressure();
+        Bmp280Temperature temperature;
+        Bmp280Pressure pressure;
+
+        int initBmc280(int dev);
+        int softReset();
+        int setPowerMode(uint8_t mode);
+        int getPowerMode(uint8_t mode);
+        int setConfiguration(struct bmp280_config *conf);
+        int getConfiguration(struct bmp280_config *conf);
+};

@@ -11,9 +11,11 @@
 
 void
 MavlinkMessageManager::run() {
-    /*if ((microsSinceEpoch() - mavlink->getSendTime()) > HeartbeatTimeout) {
-        // TODO send Heartbeat
-    }*/
+
+    // send heartbeat interval
+    if ((microsSinceEpoch() - mavlink->getSendTime()) > MAV_HEARTBEAT_INTERVAL) {
+        sendHeartbeat();
+    }
 }
 
 void
@@ -37,7 +39,22 @@ MavlinkMessageManager::handle_message_heartbeat(const mavlink_message_t *msg)
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
-        // response heartbeat
-        mavlink_msg_heartbeat_send(mavlink->getChannel(), MAV_TYPE_GENERIC, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
+        /// handle heartbeat from gcs
 	}
 }
+
+void
+MavlinkMessageManager::sendHeartbeat()
+{
+    // send heartbeat
+    mavlink_msg_heartbeat_send(mavlink->getChannel(), 
+        MAV_TYPE_QUADROTOR, MAV_AUTOPILOT_GENERIC_WAYPOINTS_ONLY, 
+        MspController::getInstance()->getMavMode(), 
+        0, 
+        MspController::getInstance()->getMavState());
+
+        heardBeatSendTime = microsSinceEpoch();
+}
+
+
+

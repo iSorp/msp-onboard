@@ -1,4 +1,9 @@
+#pragma once
+
 #include <string>
+#include <map>
+
+#include "sensor_def.h"
 
 typedef struct {
     int id;
@@ -21,7 +26,9 @@ class MspSensors {
 
     private:
         static MspSensors *instance;
+        //Bmp280 bmp280;
+
+        std::map<int, Sensor> sensorMap;
 
         int initI2C(); 
-
 };

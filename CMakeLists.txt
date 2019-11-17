@@ -37,4 +37,5 @@ if (DJI_OSDK)
     add_subdirectory(Onboard-SDK)
 endif ()
 
+add_subdirectory(spdlog)
 add_subdirectory(src)

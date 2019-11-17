@@ -21,6 +21,48 @@ MspController::initialize(Mavlink* mavlink) {
     setState(&stateInit);
 }
 
+
+MAV_STATE 
+MspController::getMavState() {
+
+    if (state == nullptr) {
+        return MAV_STATE::MAV_STATE_UNINIT;
+    } else if (typeid(*state) == typeid(MspController::Init)){
+        return MAV_STATE::MAV_STATE_BOOT;
+    }else{
+        return MAV_STATE::MAV_STATE_ACTIVE;
+    }
+}
+
+
+
+uint8_t 
+MspController::getMavMode() {
+
+    uint8_t mode = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+
+    const uint8_t autoMode = MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+    bool simulator = true;
+
+    if (simulator){
+        mode |= MAV_MODE_FLAG_HIL_ENABLED;
+    }
+    else {
+        mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+    }
+
+    if (typeid(*state) == typeid(MspController::Mission))
+    {
+        mode |= autoMode;
+    }
+        if (typeid(*state) == typeid(MspController::Command))
+    {
+        mode |= autoMode;
+    }
+    return mode;
+}
+
+
 void 
 MspController::setState(State *_state) {
 
