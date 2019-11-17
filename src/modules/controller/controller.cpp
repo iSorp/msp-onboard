@@ -35,7 +35,6 @@ MspController::getMavState() {
 }
 
 
-
 uint8_t 
 MspController::getMavMode() {
 
@@ -51,14 +50,17 @@ MspController::getMavMode() {
         mode |= MAV_MODE_FLAG_SAFETY_ARMED;
     }
 
-    if (typeid(*state) == typeid(MspController::Mission))
-    {
-        mode |= autoMode;
-    }
+    if (state) {
+        if (typeid(*state) == typeid(MspController::Mission))
+        {
+            mode |= autoMode;
+        }
         if (typeid(*state) == typeid(MspController::Command))
-    {
-        mode |= autoMode;
+        {
+            mode |= autoMode;
+        }
     }
+
     return mode;
 }
 

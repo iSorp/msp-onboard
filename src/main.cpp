@@ -18,7 +18,7 @@
     #include "dji_mission_interface.h"
 #endif
 
-const char* config_path = "/home/simon/UserConfig.txt";
+const char* config_path = "/home/msp/UserConfig.txt";
 
 int main(int argc, char** argv) {
 	
@@ -78,8 +78,9 @@ int main(int argc, char** argv) {
 
     #ifdef MAVLKIN_UDP   
     spdlog::info("mavlink udp available");
-    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");//"127.0.0.1");
+    //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.1.132");
     //MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "127.0.0.1");
+    MavlinkUDP* mavlinkUDP = new MavlinkUDP(5001, 5000, "192.168.0.2");
     std::thread threadMavlinkUDP = mavlinkUDP->start();
     #endif
 
