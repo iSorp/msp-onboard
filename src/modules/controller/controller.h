@@ -2,6 +2,7 @@
 
 #include <list>
 #include <map>
+
 #include "spdlog/spdlog.h"
 #include "defines.h"
 #include "controller_def.h"
@@ -106,6 +107,7 @@ class MspController {
                 EResult missionStop();
                 EResult missionPauseContinue(bool pause);
                 void sendMissionItemReached(int seq);
+                void validateMissionItems();
         };
 
         class Command : public State {

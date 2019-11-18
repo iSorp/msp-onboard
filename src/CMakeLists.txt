@@ -53,21 +53,23 @@ FILE(GLOB COMMMON_LIB_HEADERS
 include_directories("${COMMMON_LIB_HEADERS}")
 include_directories("${PROJECT_SOURCE_DIR}")
 
+
 # submodules
 if (DJI_OSDK)
     add_subdirectory(modules/dji)
 endif(DJI_OSDK)
+add_subdirectory(modules/sensors)
 add_subdirectory(modules/mavlink)
 add_subdirectory(modules/controller)
-add_subdirectory(modules/sensors)
 
 
 # executable
 add_executable(msp-onboard main.cpp)
 target_link_libraries(msp-onboard spdlog::spdlog)
+target_link_libraries(msp-onboard sensors)
 target_link_libraries(msp-onboard mavlink)
 target_link_libraries(msp-onboard controller)
-target_link_libraries(msp-onboard sensors)
+
 
 if (DJI_OSDK)
     target_link_libraries(msp-onboard dji djiosdk-core)

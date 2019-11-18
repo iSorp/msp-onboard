@@ -7,11 +7,6 @@ set (mavlink_src
     mav_ftp.cpp
     )
 
-FILE(GLOB COMMMON_LIB_HEADERS
-    "${PROJECT_SOURCE_DIR}/include"
-    "${PROJECT_SOURCE_DIR}/lib"
-    )
-
 add_library(mavlink "${mavlink_src}")
 
 target_link_libraries(mavlink PRIVATE spdlog::spdlog)

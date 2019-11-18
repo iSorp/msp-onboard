@@ -5,12 +5,6 @@
 
 #include "sensor_def.h"
 
-typedef struct {
-    int id;
-    std::string value;
-} SensorValue;
-
-
 class MspSensors {
 
     struct State;

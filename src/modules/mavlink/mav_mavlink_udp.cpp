@@ -1,4 +1,5 @@
 
+#include <string>
 #include <arpa/inet.h>
 #include <fcntl.h>
 
@@ -18,10 +19,10 @@ MavlinkUDP::~MavlinkUDP() {
 void
 MavlinkUDP::init(){
     spdlog::info("MavlinkUDP::init");
-    memset(&loc_addr, 0, sizeof(loc_addr));
-	loc_addr.sin_family = AF_INET;
+
+	loc_addr.sin_family      = AF_INET;
 	loc_addr.sin_addr.s_addr = INADDR_ANY;
-	loc_addr.sin_port = htons(src_port);
+	loc_addr.sin_port        = htons(src_port);
 
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         spdlog::error("MavlinkUDP::init, " + EXIT_FAILURE);
@@ -42,13 +43,13 @@ MavlinkUDP::init(){
 		exit(EXIT_FAILURE);
     }
 
-    memset(&src_addr, 0, sizeof(src_addr));
+    // initialize socket for remote (address is binded when the first paket arrives)
+    //memset(&src_addr, 0, sizeof(src_addr));
     src_addr.sin_family = AF_INET;
-    inet_aton(remote_ip, &src_addr.sin_addr);
-    src_addr.sin_port = htons(remote_port);
+    src_addr.sin_port   = htons(remote_port);
 
     // add the UDP Socket to the event loop file descriptor 
-    fds[0].fd = get_socket_fd();
+    fds[0].fd     = socket_fd;
     fds[0].events = POLLIN;
 }
 
@@ -65,7 +66,7 @@ int
 MavlinkUDP::sendPacket()
 {
     Mavlink::sendPacket();
-	if (send_buf_len == 0) {
+	if (send_buf_len == 0 || !initialized) {
 		return 0;
 	}
 
@@ -88,7 +89,14 @@ MavlinkUDP::handleMessages() {
         int nread = 0;
 
         if (fds[0].revents & POLLIN) {
-            nread = recvfrom(get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+            nread = recvfrom(socket_fd, buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+        }
+
+        // binds the remote ip address when the first paket arrives (remote port is fix)
+        if (!initialized) {
+            src_addr.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+            initialized = true;
+            spdlog::info("udp remote address initialized: " + std::string(inet_ntoa(srcaddr.sin_addr)));
         }
         
         for (ssize_t i = 0; i < nread; i++) {

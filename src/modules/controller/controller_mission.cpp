@@ -1,3 +1,5 @@
+#include <string>
+#include <sstream>
 #include <iomanip>
 
 // https://github.com/nlohmann/json
@@ -7,37 +9,60 @@
 #include "controller.h"
 #include "sensors.h"
 
-static void 
-writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors) {
+
+static void
+writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
+
+    std::time_t t = std::time(0);
+    std::tm* now = std::localtime(&t);
+    std::stringstream dstream;
+    // 2009-06-15T13:45:30 
+    dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
+        << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
+
     nlohmann::json j;
     nlohmann::json sensor_array = nlohmann::json::array();
 
+    // Sensor values: e.g i2c sensors
     for (int i = 0; i < sensors.size(); i++) {
         std::string strIndex = std::to_string(i);
         sensor_array.push_back({
             {"id", sensors[i].id},
             {"value", sensors[i].value},
+            {"MIME-Type", "text" },
         });
     }
+
+    // pictures paths
+    for (int i = 0; i < pictures.size(); i++) {
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"value", pictures[i] },
+            {"MIME-Type", "picture" },
+        });
+    }
+
     j["sensors"] = sensor_array;
     
     j["x"] = wpdata->longitude;
     j["y"] = wpdata->latitude;
     j["z"] = wpdata->altitude;
+    j["date"] = dstream.str();
 
-    std::ofstream ofs("wp" + std::to_string(wpdata->index) + "data.json");
+    std::ofstream ofs(std::string(WP_EXPORT_PATH) + "/ wp" + std::to_string(wpdata->index) + ".json");
     ofs << std::setw(4) << j << std::endl;
 }
-
 
 //-------------------------------------------------------------
 // Class Mission 
 //-------------------------------------------------------------
 void 
 MspController::Mission::entry() {
-    // TODO some initialization
-    
+
+    // Ckeck if mission items are valid (coordinates, actions)
+    validateMissionItems(); 
 }
+
 void 
 MspController::Mission::exit() {
     // if all WP are done, end mission
@@ -65,6 +90,7 @@ MspController::Mission::cmdExecute(uint16_t command, mavlink_command_long_t cmd)
 
 EResult 
 MspController::Mission::missionStart() {
+
     spdlog::info("MspController::Mission::missionStart");
     EResult ret = EResult::MSP_FAILED;
     // Upload mission data
@@ -123,26 +149,33 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification, V
             // Send mission item reached mavlink messsage
             sendMissionItemReached(wpdata->index);
 
-            // Export position and sensor data
+            // Export position and sensor/picture data
             std::vector<mavlink_mission_item_t>* items = MspController::getInstance()->getMissionItem(wpdata->index);
             if (items) {
                 std::vector<SensorValue> sensors;
-                for (int i = 0; i < items->size(); i++){
+                std::vector<std::string> pictures;
+
+                for (int i = 0; i < items->size(); i++) {
                     mavlink_mission_item_t item = (*items)[i];
 
-                    // TODO handle Camera commands
-                    if (item.command == MAV_CMD_USER_1) continue;
+                    // MAV_CMD_USER_1 = BehaviorItem and has no action
+                    if (item.command == MAV_CMD_USER_1) continue; 
+
                     if (item.command == MAV_CMD_USER_2) {
                         int id = (int)item.param1;
                         sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
                     }
+                    else if (item.command == MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE) {
+                        // TODO lookup for picture path
+                        // pictures.push_back(picture_path)
+                    }
                 }
-                if (sensors.size() > 0) {
-                    writeWpResult(wpdata, sensors);
-                }               
+                
+                writeWpResult(wpdata, sensors, pictures);            
             }
         }
 
+        // TODO
         bool nextWPavailable = false;
         bool optionOrigin = false;
 
@@ -181,3 +214,20 @@ MspController::Mission::sendMissionItemReached(int seq) {
     wpc.seq = seq;
     mavlink_msg_mission_current_send_struct(mavlink->getChannel(), &wpc);
 }
+
+void 
+MspController::Mission::validateMissionItems() {
+    
+    // TODO validate coordinates (GEO fence) 
+    for (size_t i = 0; i < MspController::getInstance()->getMissionItemCount(); i++)
+    {
+        mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
+    }
+
+    if (false) {
+        context->setState(&context->stateIdle);
+    }
+}
+
+
+
