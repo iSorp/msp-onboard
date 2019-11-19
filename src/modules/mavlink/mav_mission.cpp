@@ -74,8 +74,6 @@ MavlinkMissionManager::MissionDownloadService::handleMissionCount(const mavlink_
 	mavlink_mission_count_t itemCount;
 	mavlink_msg_mission_count_decode(msg, &itemCount);
 
-    MAV_MISSION_TYPE mission_type;
-
     if (itemCount.count >= MAX_MISSION_ITEM_COUNT) {
         spdlog::error("MissionDownloadService::handleMissionCount, too many mission items");
         manager->sendMissionAck(transferSysId, transferCompId, MAV_MISSION_NO_SPACE);

@@ -10,15 +10,16 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
-  set(COMMON_CXX_FLAGS "-std=c++11 -fPIC")
+  set(COMMON_CXX_FLAGS "-std=c++11 -fPIC -Wall -Wno-psabi")
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES Darwin)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")# -Werror")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
 endif ()
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${COMMON_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
+  add_definitions(-DMSP_DEBUG)
 endif ()
 
 if (CMAKE_BUILD_TYPE MATCHES "Release")

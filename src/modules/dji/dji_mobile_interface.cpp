@@ -9,7 +9,7 @@ mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData);
 static void
 sendDataToMSDK(uint8_t* data, uint8_t len);
 
-bool
+void
 setupMSDKComm(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment, MavlinkDJI* mavlinkDJI)
 {
     // registered dji vehicle

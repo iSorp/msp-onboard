@@ -15,11 +15,9 @@ std::mutex message_lock;
 void
 MavlinkDJI::sendBytes(const uint8_t* buf, unsigned packet_len)
 {
-    size_t ret = -1;
     if (send_buf_len + packet_len < sizeof(send_buf) / sizeof(send_buf[0])) {
         memcpy(&send_buf[send_buf_len], buf, packet_len);
         send_buf_len += packet_len;
-        ret = packet_len;
     }
 }
 

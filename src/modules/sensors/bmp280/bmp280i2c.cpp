@@ -173,7 +173,7 @@ Bmp280::initBmc280(int dev) {
     #if defined(__linux__)
     // get I2C sensor
     int ret = ioctl(device, I2C_SLAVE, BMP280_I2C_ADDR_SEC);
-    if (ret = -1){
+    if (ret == -1){
         spdlog::error("failed to get I2C sensor");
         return 1;
     }
@@ -188,7 +188,7 @@ Bmp280::initBmc280(int dev) {
     bmp280.delay_ms = BMP280_delay_msek;
 
     // Sensor initialization
-    printf("initialize bmp280\n");
+    spdlog::info("initialize bmp280");
 	int8_t rslt = bmp280_init(&bmp280);
 	if (rslt != BMP280_OK) {  
         spdlog::error("Unable to initialize bmp280: " + std::to_string(rslt));
@@ -196,7 +196,7 @@ Bmp280::initBmc280(int dev) {
 	}
 
 	// bmp280 configuration
-    printf("configure bmp280\n");
+    spdlog::info("configure bmp280");
     struct bmp280_config conf;
     getConfiguration(&conf);
 
@@ -208,7 +208,7 @@ Bmp280::initBmc280(int dev) {
     rslt = setConfiguration(&conf);
 
     // Set normal power mode
-    printf("set mode bmp280\n");
+    spdlog::info("set mode bmp280");
 	rslt = bmp280_set_power_mode(BMP280_NORMAL_MODE, &bmp280);
     if (rslt != BMP280_OK){
         spdlog::error("Unable to set power mode: " + std::to_string(rslt));
@@ -217,7 +217,7 @@ Bmp280::initBmc280(int dev) {
 
     // get computed meassure time
     meas_dur = bmp280_compute_meas_time(&bmp280);
-    spdlog::info("set power mode %hhx: " + meas_dur);
+    spdlog::info("set power mode %hhx:", meas_dur);
     return 0;
 }
 

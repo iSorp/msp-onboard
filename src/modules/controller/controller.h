@@ -18,7 +18,7 @@ class MspController {
     public:
         static MspController *getInstance();
 
-        VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) -> EResult{ });
+        VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) -> EResult{ return EResult::MSP_FAILED; });
         void vehicleNotification(EVehicleNotification notification, VehicleData data);
         
         void initialize(Mavlink* mavlink);
@@ -51,7 +51,7 @@ class MspController {
         {}
 
         static MspController *instance;
-        State* state;
+        State* state = nullptr;
         
         std::map<int, std::vector<mavlink_mission_item_t>> missionItemMap;
         

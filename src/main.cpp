@@ -9,9 +9,10 @@
 
 #include "mav_mavlink_udp.h"
 #include "controller.h"
+#include "sensors.h"
 
 #define MAVLKIN_UDP
-//#define DJI_OSDK
+#define DEBUG_SENSORS
 
 #ifdef DJI_OSDK
     #include "dji_vehicle.hpp"
@@ -20,6 +21,31 @@
     #include "dji_mobile_interface.h"
     #include "dji_mission_interface.h"
 #endif
+
+
+void waitForExit() {
+    // Poll stdin, exit on input
+    struct pollfd fds[1] = {};
+    fds[0].fd     = STDIN_FILENO;
+    fds[0].events = POLLIN;
+    int exit = 0;
+    while (exit == 0) {
+        #ifdef DEBUG_SENSORS
+        spdlog::debug("temperature: " + MspSensors::getInstance()->getSensorValue(1).value);
+        spdlog::debug("pressure: " + MspSensors::getInstance()->getSensorValue(2).value);
+        #endif
+    
+        if (poll(&fds[0], 1, 5000) > 0) {
+            if (fds[0].revents & POLLIN) {
+                char buf = ' ';
+                read(fds[0].fd, &buf, sizeof(buf));
+                if (buf == '1') {
+                    exit = true;
+                }
+            }
+        }
+    }
+}
 
 int main(int argc, char** argv) {
 	
@@ -32,7 +58,11 @@ int main(int argc, char** argv) {
 
         // Log level
         combined_logger->flush_on(spdlog::level::warn);
-        combined_logger->set_level(spdlog::level::info);
+        #ifdef MSP_DEBUG
+            combined_logger->set_level(spdlog::level::debug);
+        #else
+            combined_logger->set_level(spdlog::level::info);
+        #endif
 
         //register it if you need to access it globally
         spdlog::register_logger(combined_logger);
@@ -96,10 +126,8 @@ int main(int argc, char** argv) {
     // Initialize the controller (DJI communication, sensors)
     MspController::getInstance()->initialize(mavlinkUDP);
 
-    int exit = 0;
-    while (exit == 0) {
-        std::cin >> exit;
-    }
+    // exit on input '1'
+    waitForExit();
    
     #ifdef MAVLKIN_UDP
     if (mavlinkUDP){
@@ -123,13 +151,10 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-
-
 // dji mavlink test
 //setupMSDKComm(NULL, NULL, mavlinkDJI);
 //uint8_t heartBeat[17] = {0xfe, 0x09, 00, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x08, 0x00, 0x00, 0x03, 0xf4, 0x5a };
 //mavlinkDJI->setBuffer(heartBeat, 17);
-
 
 
 /*

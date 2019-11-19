@@ -1,4 +1,5 @@
 #pragma once
+#pragma GCC diagnostic ignored "-Wreorder"
 
 #include "mavlink_bridge_header.h"
 #include "mav_service.h"

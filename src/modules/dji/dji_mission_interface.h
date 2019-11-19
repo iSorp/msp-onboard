@@ -1,5 +1,5 @@
 #include <dji_vehicle.hpp>
 #include <dji_linux_helpers.hpp>
 
-bool
+void
 setupDJIMission(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment);

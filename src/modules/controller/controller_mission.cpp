@@ -24,7 +24,7 @@ writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, s
     nlohmann::json sensor_array = nlohmann::json::array();
 
     // Sensor values: e.g i2c sensors
-    for (int i = 0; i < sensors.size(); i++) {
+    for (size_t i = 0; i < sensors.size(); i++) {
         std::string strIndex = std::to_string(i);
         sensor_array.push_back({
             {"id", sensors[i].id},
@@ -34,7 +34,7 @@ writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, s
     }
 
     // pictures paths
-    for (int i = 0; i < pictures.size(); i++) {
+    for (size_t i = 0; i < pictures.size(); i++) {
         std::string strIndex = std::to_string(i);
         sensor_array.push_back({
             {"value", pictures[i] },
@@ -155,7 +155,7 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification, V
                 std::vector<SensorValue> sensors;
                 std::vector<std::string> pictures;
 
-                for (int i = 0; i < items->size(); i++) {
+                for (size_t i = 0; i < items->size(); i++) {
                     mavlink_mission_item_t item = (*items)[i];
 
                     // MAV_CMD_USER_1 = BehaviorItem and has no action
@@ -219,7 +219,7 @@ void
 MspController::Mission::validateMissionItems() {
     
     // TODO validate coordinates (GEO fence) 
-    for (size_t i = 0; i < MspController::getInstance()->getMissionItemCount(); i++)
+    for (int i = 0; i < MspController::getInstance()->getMissionItemCount(); i++)
     {
         mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
     }

@@ -12,7 +12,7 @@ class MspSensors {
     public:
         static MspSensors *getInstance();
 
-        int initialize();
+        bool initialize();
         SensorValue getSensorValue(int sensor_id);
         
     protected:
@@ -22,7 +22,7 @@ class MspSensors {
         static MspSensors *instance;
         //Bmp280 bmp280;
 
-        std::map<int, Sensor> sensorMap;
+        std::map<int, Sensor*> sensorMap;
 
-        int initI2C(); 
+        bool initI2C(); 
 };

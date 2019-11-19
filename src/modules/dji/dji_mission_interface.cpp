@@ -25,9 +25,6 @@ static EResult
 cmdCallback(EVehicleCmd cmd, void* data, size_t len);
 
 static EResult
-commandDataToOSDK();
-
-static EResult
 runWaypointMission(); 
 
 static EResult
@@ -46,7 +43,7 @@ setWaypointInitDefaults(WayPointInitSettings* fdata);
 //-------------------------------------------------------------
 // Initialize Mission functionalities
 //-------------------------------------------------------------
-bool
+void
 setupDJIMission(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment)
 {
     // registered dji vehicle
@@ -82,7 +79,8 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
     return ret;
 }
 
-void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+void 
+wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
 
     waypointReachedData_t wpdata;
 
@@ -121,8 +119,6 @@ uploadWaypoints() {
 
     fdata.indexNumber = wp_list.size() + 1; // We add 1 to get the aircarft back to the start.
 
-    float64_t increment = 0.000001;
-    float32_t start_alt = 10;
 
     if (vehicle) {
         ACK::ErrorCode initAck = vehicle->missionManager->init(DJI_MISSION_TYPE::WAYPOINT, responseTimeout, &fdata);
@@ -205,7 +201,6 @@ createWaypoints() {
         mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
         if (item){
             WayPointSettings  wp;
-            WayPointSettings* prevWp = &wp_list[i - 1];
             setWaypointDefaults(&wp);
             wp.index     = i;
             wp.latitude  = item->x;

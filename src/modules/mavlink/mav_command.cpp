@@ -34,9 +34,6 @@ MavlinkCommandManager::handle_message(const mavlink_message_t *msg)
         else {
 
             // Send error response
-            mavlink_command_ack_t cmda;
-            cmda.result = MAV_RESULT_TEMPORARILY_REJECTED;
-
             if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG){
                 commandService.sendCmdAck(mavlink_msg_command_long_get_command(msg), MAV_RESULT_TEMPORARILY_REJECTED);
             }

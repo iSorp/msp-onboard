@@ -11,6 +11,6 @@ typedef struct {
 class Sensor {
 
     public:
-        virtual int getStatus(){}
-        virtual std::string getValue() {}
+        virtual int getStatus() { return 0; }
+        virtual std::string getValue() { return "" ; }
 };

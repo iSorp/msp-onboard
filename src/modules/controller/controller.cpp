@@ -100,10 +100,9 @@ MspController::vehicleNotification(EVehicleNotification notification, VehicleDat
 */
 mavlink_mission_item_t* 
 MspController::getMissionBehaviorItem(int key) {
-    mavlink_mission_item_t item;
     if (missionItemMap.count(key) > 0) {
         std::vector<mavlink_mission_item_t> items = missionItemMap[key];
-        for (int i = 0; i < items.size(); i++) {
+        for (uint8_t i = 0; i < items.size(); i++) {
             if (items[i].command == MAV_CMD_USER_1) {
                 return &items[i];
             }

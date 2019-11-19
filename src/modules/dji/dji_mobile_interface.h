@@ -7,5 +7,5 @@
 #include "dji_mobile_interface.h"
 #include "dji_mavlink.h"
 
-bool
+void
 setupMSDKComm(Vehicle* vehicle, LinuxSetup* linuxEnvironment, MavlinkDJI* mavlinkDJI);

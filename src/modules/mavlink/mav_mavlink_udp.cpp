@@ -18,7 +18,6 @@ MavlinkUDP::~MavlinkUDP() {
 
 void
 MavlinkUDP::init(){
-    spdlog::info("MavlinkUDP::init");
 
 	loc_addr.sin_family      = AF_INET;
 	loc_addr.sin_addr.s_addr = INADDR_ANY;
