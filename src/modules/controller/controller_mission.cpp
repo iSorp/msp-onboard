@@ -2,56 +2,13 @@
 #include <sstream>
 #include <iomanip>
 
-// https://github.com/nlohmann/json
 #include "json.hpp"
-
 #include "helper.h"
 #include "controller.h"
 #include "sensors.h"
 
-
 static void
-writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
-
-    std::time_t t = std::time(0);
-    std::tm* now = std::localtime(&t);
-    std::stringstream dstream;
-    // 2009-06-15T13:45:30 
-    dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
-        << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
-
-    nlohmann::json j;
-    nlohmann::json sensor_array = nlohmann::json::array();
-
-    // Sensor values: e.g i2c sensors
-    for (size_t i = 0; i < sensors.size(); i++) {
-        std::string strIndex = std::to_string(i);
-        sensor_array.push_back({
-            {"id", sensors[i].id},
-            {"value", sensors[i].value},
-            {"MIME-Type", "text" },
-        });
-    }
-
-    // pictures paths
-    for (size_t i = 0; i < pictures.size(); i++) {
-        std::string strIndex = std::to_string(i);
-        sensor_array.push_back({
-            {"value", pictures[i] },
-            {"MIME-Type", "picture" },
-        });
-    }
-
-    j["sensors"] = sensor_array;
-    
-    j["x"] = wpdata->longitude;
-    j["y"] = wpdata->latitude;
-    j["z"] = wpdata->altitude;
-    j["date"] = dstream.str();
-
-    std::ofstream ofs(std::string(WP_EXPORT_PATH) + "/ wp" + std::to_string(wpdata->index) + ".json");
-    ofs << std::setw(4) << j << std::endl;
-}
+writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures);
 
 //-------------------------------------------------------------
 // Class Mission 
@@ -137,71 +94,92 @@ MspController::Mission::missionStop() {
 void 
 MspController::Mission::vehicleNotification(EVehicleNotification notification, VehicleData data) {
     spdlog::info("MspController::Mission::vehicleNotification(" + std::to_string(notification) + ")");
-    if (notification == EVehicleNotification::MSP_VHC_WAY_POINT_REACHED) {
-        
-        // Pause mission
-        EResult ret = EResult::MSP_FAILED;MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
 
-        // Handle wpreached data
-        waypointReachedData_t* wpdata = static_cast<waypointReachedData_t*>(data);     
-        if (wpdata) {
+    switch (notification)
+    {
+    case EVehicleNotification::MSP_VHC_WAY_POINT_REACHED:
+        handleWpReached(data);
+        break;
+    
+    default:
+        break;
+    }
+}
 
-            // Send mission item reached mavlink messsage
-            sendMissionItemReached(wpdata->index);
+//-------------------------------------------------------------
+// Mission helpers
+//-------------------------------------------------------------
+void 
+MspController::Mission::handleWpReached(VehicleData data) {
+    // Pause mission
+    EResult ret = EResult::MSP_FAILED;
+    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
 
-            // Export position and sensor/picture data
-            std::vector<mavlink_mission_item_t>* items = MspController::getInstance()->getMissionItem(wpdata->index);
-            if (items) {
-                std::vector<SensorValue> sensors;
-                std::vector<std::string> pictures;
+    // Handle wpreached data
+    waypointReachedData_t* wpdata = static_cast<waypointReachedData_t*>(data);     
+    if (wpdata) {
 
-                for (size_t i = 0; i < items->size(); i++) {
-                    mavlink_mission_item_t item = (*items)[i];
+        // Send mission item reached mavlink messsage
+        sendMissionItemReached(wpdata->index);
+        executeAction(wpdata);
+    }
 
-                    // MAV_CMD_USER_1 = BehaviorItem and has no action
-                    if (item.command == MAV_CMD_USER_1) continue; 
+    // TODO
+    bool nextWPavailable = false;
+    bool optionOrigin = false;
 
-                    if (item.command == MAV_CMD_USER_2) {
-                        int id = (int)item.param1;
-                        sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
-                    }
-                    else if (item.command == MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE) {
-                        // TODO lookup for picture path
-                        // pictures.push_back(picture_path)
-                    }
-                }
-                
-                writeWpResult(wpdata, sensors, pictures);            
-            }
+    // check for next WP
+    if (nextWPavailable) {
+        // resume mission
+        ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
+        if (ret != EResult::MSP_SUCCESS){
+            context->setState(&context->stateIdle);
+            return;
         }
-
-        // TODO
-        bool nextWPavailable = false;
-        bool optionOrigin = false;
-
-        // check for next WP
-        if (nextWPavailable) {
-            // resume mission
-            ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
+    }
+    else {
+        // if option to origin -> execute
+        if (optionOrigin){
+            ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
             if (ret != EResult::MSP_SUCCESS){
                 context->setState(&context->stateIdle);
                 return;
             }
-        }
-        else {
-            // if option to origin -> execute
-            if (optionOrigin){
-                ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
-                if (ret != EResult::MSP_SUCCESS){
-                    context->setState(&context->stateIdle);
-                    return;
-                }
-            } else{
-                // otherwise hower and set idle state
-                context->setState(&context->stateIdle);
-            }
+        } else{
+            // otherwise hower and set idle state
+            context->setState(&context->stateIdle);
         }
     }
+}
+
+void 
+MspController::Mission::executeAction(waypointReachedData_t* wpdata) {
+    
+    // Export position and sensor/picture data
+    std::vector<mavlink_mission_item_t>* items = MspController::getInstance()->getMissionItem(wpdata->index);
+    if (items) {
+        std::vector<SensorValue> sensors;
+        std::vector<std::string> pictures;
+
+        for (size_t i = 0; i < items->size(); i++) {
+            mavlink_mission_item_t item = (*items)[i];
+            int id = (int)item.param1;
+
+            switch (item.command)
+            {
+            case MAV_CMD_USER_2:
+                sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
+                break;
+            case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
+                MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_TAKE_PICTURE, &item, 0);
+                break;
+            
+            default:
+                break;
+            }
+        }             
+        writeWpResult(wpdata, sensors, pictures);            
+    } 
 }
 
 void 
@@ -230,4 +208,46 @@ MspController::Mission::validateMissionItems() {
 }
 
 
+static void
+writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
+
+    std::time_t t = std::time(0);
+    std::tm* now = std::localtime(&t);
+    std::stringstream dstream;
+    // 2009-06-15T13:45:30 
+    dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
+        << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
+
+    nlohmann::json j;
+    nlohmann::json sensor_array = nlohmann::json::array();
+
+    // Sensor values: e.g i2c sensors
+    for (size_t i = 0; i < sensors.size(); i++) {
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"id", sensors[i].id},
+            {"value", sensors[i].value},
+            {"mime", "text/plain" },
+        });
+    }
+
+    // pictures paths
+    for (size_t i = 0; i < pictures.size(); i++) {
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"value", pictures[i] },
+            {"mime", "image/png" },
+        });
+    }
+
+    j["sensors"] = sensor_array;
+    
+    j["x"] = wpdata->longitude;
+    j["y"] = wpdata->latitude;
+    j["z"] = wpdata->altitude;
+    j["date"] = dstream.str();
+
+    std::ofstream ofs(std::string(WP_EXPORT_PATH) + "/ wp" + std::to_string(wpdata->index) + ".json");
+    ofs << std::setw(4) << j << std::endl;
+}
 

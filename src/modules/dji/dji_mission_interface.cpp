@@ -3,11 +3,13 @@
 #include <dji_vehicle.hpp>
 #include <dji_linux_helpers.hpp>
 
+#include "dji_camera_gimbal_def.h"
 #include "dji_mission_interface.h"
 #include "controller.h"
 
 using namespace DJI::OSDK;
 using namespace DJI::OSDK::Telemetry;
+
 
 Vehicle* vehicle;
 std::vector<WayPointSettings> wp_list;
@@ -23,36 +25,37 @@ const int DEFAULT_PACKAGE_INDEX = 0;
 //-------------------------------------------------------------
 static EResult 
 cmdCallback(EVehicleCmd cmd, void* data, size_t len);
-
 static EResult
 runWaypointMission(); 
-
+static EResult
+pauseWaypointMission();
+static EResult
+resumeWaypointMission();
 static EResult
 uploadWaypoints();
+static EResult
+takePicture(void* data);
 
 void
 createWaypoints();
-
 static void
 setWaypointDefaults(WayPointSettings* wp);
-
 static void
 setWaypointInitDefaults(WayPointInitSettings* fdata);
-
+static void
+setGimbalAngle(Vehicle* vehicle, GimbalContainer* gimbal);
 
 //-------------------------------------------------------------
 // Initialize Mission functionalities
 //-------------------------------------------------------------
 void
-setupDJIMission(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment)
-{
+setupDJIMission(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment){
     // registered dji vehicle
     vehicle = vehicleDJI;
 
     // set callback for controller command data
     MspController::getInstance()->vehicleCmd = &cmdCallback;
 }
-
 //-------------------------------------------------------------
 // Calback command function from/To MSPController
 //-------------------------------------------------------------
@@ -72,8 +75,17 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
             ret = runWaypointMission();
         }
         break;
-    
+    case EVehicleCmd::MSP_CMD_MISSION_PAUSE:
+        ret = pauseWaypointMission();
+        break;
+
+   case EVehicleCmd::MSP_CMD_MISSION_RESUME:
+        ret = resumeWaypointMission();
+        break;
+
     default:
+        EVehicleCmd::MSP_CMD_TAKE_PICTURE:
+        ret = takePicture(data);
         break;
     }
     return ret;
@@ -81,12 +93,12 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
 
 void 
 wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
-
-    waypointReachedData_t wpdata;
+    spdlog::debug("wayPointCallback");
 
     // Current waypoint data
     ACK::WayPointReachedData wpReachedData = recvFrame.recvData.wayPointReachedData;
 
+    waypointReachedData_t wpdata;
     wpdata.index = wpReachedData.waypoint_index;
 
     // Global position retrieved via subscription
@@ -95,16 +107,24 @@ wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
     wpdata.latitude  = subscribeGPosition.latitude;
     wpdata.longitude = subscribeGPosition.longitude;
     wpdata.altitude  = subscribeGPosition.altitude;
-
+    
     MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
 }
 
 void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+    spdlog::debug("wayPointEventCallback");
     waypointReachedData_t wpdata;
 
     MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
 }
 
+void missionPauseCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+    spdlog::debug("missionPauseCallback");
+}
+
+void missionResumeCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+    spdlog::debug("missionResumeCallback");
+}
 
 //-------------------------------------------------------------
 // Mission upload and running
@@ -118,7 +138,6 @@ uploadWaypoints() {
     setWaypointInitDefaults(&fdata);
 
     fdata.indexNumber = wp_list.size() + 1; // We add 1 to get the aircarft back to the start.
-
 
     if (vehicle) {
         ACK::ErrorCode initAck = vehicle->missionManager->init(DJI_MISSION_TYPE::WAYPOINT, responseTimeout, &fdata);
@@ -172,6 +191,30 @@ runWaypointMission() {
     return ret;
 }
 
+EResult
+pauseWaypointMission() {
+    EResult ret = EResult::MSP_FAILED;
+    if (vehicle) {
+        vehicle->missionManager->wpMission->pause(&missionPauseCallback, NULL);
+        ret = EResult::MSP_SUCCESS;
+    }
+    else {
+        spdlog::warn("pauseWaypointMission, vehicle not initialized");
+    }    
+}
+
+EResult
+resumeWaypointMission() {
+    EResult ret = EResult::MSP_FAILED;
+    if (vehicle) {
+        vehicle->missionManager->wpMission->resume(&missionResumeCallback, NULL);
+        ret = EResult::MSP_SUCCESS;
+    }
+    else {
+        spdlog::warn("resumeWaypointMission, vehicle not initialized");
+    }
+}
+
 //-------------------------------------------------------------
 // Waypoint creation
 //-------------------------------------------------------------
@@ -198,14 +241,19 @@ createWaypoints() {
 
     for (int i = 1; i < MspController::getInstance()->getMissionItemCount(); i++)
     {
+        WayPointSettings  wp;
+        setWaypointDefaults(&wp);
+
         mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
         if (item){
-            WayPointSettings  wp;
-            setWaypointDefaults(&wp);
             wp.index     = i;
             wp.latitude  = item->x;
             wp.longitude = item->y;
             wp.altitude  = item->z;
+            wp.actionNumber = i;
+            //wp.hasAction // TODO
+            //wp.gimbalPitch
+            //wp.yaw 
             wp_list.push_back(wp);
         }
     }
@@ -243,4 +291,39 @@ setWaypointInitDefaults(WayPointInitSettings* fdata)
     fdata->latitude       = 0;
     fdata->longitude      = 0;
     fdata->altitude       = 0;
+}
+
+//-------------------------------------------------------------
+// Camera actions
+//-------------------------------------------------------------
+static EResult 
+takePicture(void* data) {
+    EResult ret = EResult::MSP_FAILED;
+
+    mavlink_mission_item_t* item = (mavlink_mission_item_t*)data;
+    
+    RotationAngle initialAngle;
+    GimbalContainer gimbal = GimbalContainer(0, item->param1, item->param2, 0, 1, initialAngle);
+    setGimbalAngle(vehicle, &gimbal);
+    vehicle->camera->shootPhoto();
+    ret = EResult::MSP_SUCCESS;
+}
+
+/**
+ * From DJI Sample
+*/
+void
+setGimbalAngle(Vehicle* vehicle, GimbalContainer* gimbal) {
+  DJI::OSDK::Gimbal::AngleData gimbalAngle = {};
+  gimbalAngle.roll     = gimbal->roll;
+  gimbalAngle.pitch    = gimbal->pitch;
+  gimbalAngle.yaw      = gimbal->yaw;
+  gimbalAngle.duration = gimbal->duration;
+  gimbalAngle.mode |= 0;
+  gimbalAngle.mode |= gimbal->isAbsolute;
+  gimbalAngle.mode |= gimbal->yaw_cmd_ignore << 1;
+  gimbalAngle.mode |= gimbal->roll_cmd_ignore << 2;
+  gimbalAngle.mode |= gimbal->pitch_cmd_ignore << 3;
+
+  vehicle->gimbal->setAngle(&gimbalAngle);
 }

@@ -93,7 +93,6 @@ MspController::vehicleNotification(EVehicleNotification notification, VehicleDat
 // Mission functionalities
 //-------------------------------------------------------------
 
-
 /*
 * Gets the behavior mission item for a certain key. This item contains the behavior for the flight,
 * like speed and delay

@@ -80,7 +80,6 @@ int main(int argc, char** argv) {
     arg[0] = argv[0];
     arg[1] = DJI_USER_CONFIG;
 
-    MavlinkUDP* mavlinkUDP = nullptr;
     MavlinkDJI* mavlinkDJI = nullptr;
     LinuxSetup* linuxEnvironment = nullptr;
     Vehicle* vehicle = nullptr;
@@ -117,6 +116,7 @@ int main(int argc, char** argv) {
     #endif
 
     // Initialize mavlink connection
+    MavlinkUDP* mavlinkUDP = nullptr;
     #ifdef MAVLKIN_UDP   
     spdlog::info("mavlink udp available");
     mavlinkUDP = new MavlinkUDP(5001, 5000);

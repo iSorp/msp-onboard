@@ -18,6 +18,8 @@ enum EVehicleCmd {
     MSP_CMD_MISSION_STOP,
 
     MSP_CMD_UPLOAD_WAY_POINTS,
+
+    MSP_CMD_TAKE_PICTURE,
 };
 
 enum EResult {

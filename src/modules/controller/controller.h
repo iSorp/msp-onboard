@@ -106,6 +106,8 @@ class MspController {
                 EResult missionStart();
                 EResult missionStop();
                 EResult missionPauseContinue(bool pause);
+                void handleWpReached(VehicleData data);
+                void executeAction(waypointReachedData_t* wpdata);
                 void sendMissionItemReached(int seq);
                 void validateMissionItems();
         };
