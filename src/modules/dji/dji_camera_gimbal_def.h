@@ -111,3 +111,5 @@ typedef struct camera_zoom_data_type
   zoom_param_t digital_zoom_param;
 }camera_zoom_data_type;
 #pragma pack()
+
+#endif

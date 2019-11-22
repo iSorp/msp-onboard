@@ -4,6 +4,7 @@ set (controller_src
     controller_idle.cpp
     controller_command.cpp
     controller_mission.cpp
+    msp_vehicle.cpp
     )
 
 

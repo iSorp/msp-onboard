@@ -4,7 +4,7 @@
 /**
  * DJI
  */
-#define DJI_USER_CONFIG "/home/msp/UserConfig.txt"
+#define DJI_USER_CONFIG "/etc/msp-onboard/UserConfig.txt"
 
 /**
  * Mavlink
@@ -23,4 +23,4 @@
 /**
  * Mission
  */
-#define WP_EXPORT_PATH "/home/msp/wp_export"
+#define WP_EXPORT_PATH "/var/msp-onboard/export"

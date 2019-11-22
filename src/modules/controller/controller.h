@@ -6,6 +6,7 @@
 #include "spdlog/spdlog.h"
 #include "defines.h"
 #include "controller_def.h"
+#include "msp_vehicle.h"
 #include "mav_mavlink.h"
 
 class MspController {
@@ -18,14 +19,16 @@ class MspController {
     public:
         static MspController *getInstance();
 
+        // Command function to the vehicle
         VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) -> EResult{ return EResult::MSP_FAILED; });
+
+        // Vehicle callback function
         void vehicleNotification(EVehicleNotification notification, VehicleData data);
-        
+
         void initialize(Mavlink* mavlink);
         MAV_STATE getMavState();
         uint8_t getMavMode();
         
-
         // user commands
         EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd);
 
@@ -47,7 +50,8 @@ class MspController {
             stateInit(this),
             stateIdle(this),
             stateMission(this),
-            stateCommand(this)
+            stateCommand(this),
+            stateSim(this)
         {}
 
         static MspController *instance;
@@ -82,6 +86,7 @@ class MspController {
             public:
                 Init(MspController *context) : State(context) { };
                 void entry() override;
+                void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
         };
 
         class Idle : public State {
@@ -119,9 +124,24 @@ class MspController {
                 EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
+        class Simulation : public State {
+            public:
+                void entry() override;
+                Simulation(MspController *context) : State(context) {};
+                void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
+                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
+
+            private:
+                std::thread runner;
+
+                void missionStart();
+                void missionRun();
+        };
+
         Init stateInit;
         Idle stateIdle;
         Mission stateMission;
         Command stateCommand;
+        Simulation stateSim;
 
 };

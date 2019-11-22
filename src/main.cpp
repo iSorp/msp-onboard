@@ -8,6 +8,7 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 
 #include "mav_mavlink_udp.h"
+#include "dji_vehicle.h"
 #include "controller.h"
 #include "sensors.h"
 
@@ -21,6 +22,15 @@
     #include "dji_mobile_interface.h"
     #include "dji_mission_interface.h"
 #endif
+
+MspMockVehicle mspMockVehicle;
+MspDjiVehicle mspDjiVehicle;
+
+Mavlink* mavlink = nullptr;
+std::thread mavThread;
+
+LinuxSetup* linuxEnvironment = nullptr;
+Vehicle* vehicle = nullptr;
 
 
 void waitForExit() {
@@ -46,6 +56,7 @@ void waitForExit() {
         }
     }
 }
+
 
 int main(int argc, char** argv) {
 	
@@ -80,11 +91,6 @@ int main(int argc, char** argv) {
     arg[0] = argv[0];
     arg[1] = DJI_USER_CONFIG;
 
-    MavlinkDJI* mavlinkDJI = nullptr;
-    LinuxSetup* linuxEnvironment = nullptr;
-    Vehicle* vehicle = nullptr;
-    std::thread threadMavlinkDJI;
-
     // Setup OSDK.
     try {
         linuxEnvironment = new LinuxSetup(2, arg);
@@ -98,54 +104,39 @@ int main(int argc, char** argv) {
     {
         spdlog::info("DJI vehicle found");
 
-        // Setup mavlink for DJI
-        mavlinkDJI = new MavlinkDJI();
-        std::thread threadMavlinkDJI = mavlinkDJI->start();
-
         // Setup mobile communication
-        setupMSDKComm(vehicle, linuxEnvironment, mavlinkDJI);
-        setupDJIMission(vehicle, linuxEnvironment);
+        #ifdef MAVLKIN_UDP
+        mavlink = new MavlinkUDP(5001, 5000);
+        mspDjiVehicle.initialize(vehicle, linuxEnvironment, mavlink);
+        #else
+        mavlink = new MavlinkDJI();
+        mspDjiVehicle.initialize(vehicle, linuxEnvironment, mavlink);
+        #endif
     }
     else{
-        spdlog::warn("Vehicle not initialized, try to start UDP simulation mode");
-
-        // Setup mobile communication
-        setupMSDKComm(NULL, linuxEnvironment, NULL);
-        setupDJIMission(NULL, linuxEnvironment);
+        spdlog::warn("Vehicle not initialized, start simulation mode");
+        mavlink = new MavlinkUDP(5001, 5000);  
+        mspMockVehicle.initialize();
     }
+    #else
+        spdlog::warn("start simulation mode");
+        mavlink = new MavlinkUDP(5001, 5000);
+        mspMockVehicle.initialize();
     #endif
 
-    // Initialize mavlink connection
-    MavlinkUDP* mavlinkUDP = nullptr;
-    #ifdef MAVLKIN_UDP   
-    spdlog::info("mavlink udp available");
-    mavlinkUDP = new MavlinkUDP(5001, 5000);
-    std::thread threadMavlinkUDP = mavlinkUDP->start();
-    #endif
+    // Initialize the controller
+    MspController::getInstance()->initialize(mavlink);
 
-    // Initialize the controller (DJI communication, sensors)
-    MspController::getInstance()->initialize(mavlinkUDP);
+    // Start mavlink connection
+    mavThread = mavlink->start();
 
     // exit on input '1'
     waitForExit();
    
-    #ifdef MAVLKIN_UDP
-    if (mavlinkUDP){
-        mavlinkUDP->stop();
-        threadMavlinkUDP.join();
-        delete mavlinkUDP;
+    if (mavlink){
+        mavlink->stop();
+        mavThread.join();
     }
-    #endif
-
-    #ifdef DJI_OSDK
-    if (mavlinkDJI){
-        mavlinkDJI->stop();
-        threadMavlinkDJI.join();
-        delete mavlinkDJI;
-    }
-    delete linuxEnvironment;
-    delete vehicle;
-    #endif
 
     spdlog::info("exit app msp-onboard");
     return 0;

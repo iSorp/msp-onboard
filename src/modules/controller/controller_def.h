@@ -1,12 +1,15 @@
 #pragma once
 
 enum EVehicleNotification {
+    MSP_VHC_STATE,
     MSP_VHC_WAY_POINT_REACHED,
     MSP_VHC_LANDED,
     MSP_VHC_TAKEOFF,
 };
 
 enum EVehicleCmd {
+    MSP_CMD_READ_STATE,
+
     MSP_CMD_RETURN_TO_ORIGIN,
     MSP_CMD_TAKEOFF,
     MSP_CMD_LAND,
@@ -35,6 +38,16 @@ enum EResult {
     MSP_PROGRESS
 };
 
+
+enum EVehicleState {
+    MSP_VHC_AVAILABLE = 1,
+    MSP_VHC_READY     = 2,
+};
+
+
+struct vehicleStateData_t {        
+    uint8_t state;      // bit mask for EVehicleState
+};
 
 struct waypointReachedData_t {        
     u_int16_t index;

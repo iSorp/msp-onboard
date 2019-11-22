@@ -10,6 +10,7 @@
 static void
 writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures);
 
+
 //-------------------------------------------------------------
 // Class Mission 
 //-------------------------------------------------------------

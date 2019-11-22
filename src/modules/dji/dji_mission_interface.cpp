@@ -23,6 +23,10 @@ const int DEFAULT_PACKAGE_INDEX = 0;
 //-------------------------------------------------------------
 // Static funcitions
 //-------------------------------------------------------------
+
+static EResult 
+handleStateRequest();
+
 static EResult 
 cmdCallback(EVehicleCmd cmd, void* data, size_t len);
 static EResult
@@ -64,31 +68,43 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
     EResult ret = EResult::MSP_FAILED; 
     switch (cmd)
     {
-    case EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS:
-        createWaypoints();
-        ret = EResult::MSP_SUCCESS;
-        break;
-
-    case EVehicleCmd::MSP_CMD_MISSION_START:
-        ret = uploadWaypoints();
-        if (ret == EResult::MSP_SUCCESS){
-            ret = runWaypointMission();
-        }
-        break;
-    case EVehicleCmd::MSP_CMD_MISSION_PAUSE:
-        ret = pauseWaypointMission();
-        break;
-
-   case EVehicleCmd::MSP_CMD_MISSION_RESUME:
-        ret = resumeWaypointMission();
-        break;
-
-    default:
-        EVehicleCmd::MSP_CMD_TAKE_PICTURE:
-        ret = takePicture(data);
-        break;
+        case EVehicleCmd::MSP_CMD_READ_STATE:
+            ret = handleStateRequest();
+            break;
+        case EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS:
+            createWaypoints();
+            ret = EResult::MSP_SUCCESS;
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_START:
+            ret = uploadWaypoints();
+            if (ret == EResult::MSP_SUCCESS){
+                ret = runWaypointMission();
+            }
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_PAUSE:
+            ret = pauseWaypointMission();
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_RESUME:
+            ret = resumeWaypointMission();
+            break;
+        case EVehicleCmd::MSP_CMD_TAKE_PICTURE:
+            ret = takePicture(data);
+        default:
+            break;
     }
     return ret;
+}
+
+
+EResult 
+handleStateRequest() {
+
+    vehicleStateData_t data = { };
+    if (vehicle) {
+        data.state |= EVehicleState::MSP_VHC_AVAILABLE;
+    }
+
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &data);
 }
 
 void 
@@ -162,7 +178,6 @@ uploadWaypoints() {
     else {
         spdlog::warn("uploadWaypoints, vehicle not initialized");
     }
-
     return ret;
 }
 

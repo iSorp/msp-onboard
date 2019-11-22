@@ -21,7 +21,6 @@ MspController::initialize(Mavlink* mavlink) {
     setState(&stateInit);
 }
 
-
 MAV_STATE 
 MspController::getMavState() {
 
@@ -33,7 +32,6 @@ MspController::getMavState() {
         return MAV_STATE::MAV_STATE_ACTIVE;
     }
 }
-
 
 uint8_t 
 MspController::getMavMode() {
@@ -63,7 +61,6 @@ MspController::getMavMode() {
 
     return mode;
 }
-
 
 void 
 MspController::setState(State *_state) {
@@ -122,15 +119,15 @@ MspController::getMissionItemCount(){
     return missionItemMap.size();
 }
 
-
 bool
 MspController::missionIsActive() {
-    return typeid(*state) == typeid(MspController::Mission);
+    bool b = typeid(*state) == typeid(MspController::Mission);
+    return b;
 }
 
 EResult 
 MspController::missionDelete() {
-    if (typeid(*state) == typeid(MspController::Idle))
+    if (!missionIsActive())
     {
         missionItemMap.clear();
         return EResult::MSP_SUCCESS;
@@ -144,7 +141,7 @@ MspController::missionDelete() {
 EResult
 MspController::missionAddItem(int key, mavlink_mission_item_t wp){
     EResult res = EResult::MSP_FAILED;
-    if (typeid(*state) == typeid(MspController::Idle))
+    if (!missionIsActive())
     {
         if (missionItemMap.size() <= MAX_MISSION_ITEM_COUNT) {
             missionItemMap[key].push_back(wp);
