@@ -173,7 +173,12 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
         context->seq_rec = *(uint16_t *)&ftp.payload[SEQ];
 
         // Open requested file
-        context->cpath = (char*)&ftp.payload[DATA];
+        std::string file_path;
+        file_path.append(FTP_PATH);
+        file_path.append("/");
+        file_path.append((char*)&ftp.payload[DATA]);
+        const char *cstr = file_path.c_str();
+        context->cpath = cstr;
         context->file.open(string(context->cpath), ios::binary);
         if (context->file.is_open()) {
             spdlog::debug("FileUploadInit::handle_message, file found and open");

@@ -126,7 +126,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
     }
 
     // TODO
-    bool nextWPavailable = false;
+    bool nextWPavailable = true;
     bool optionOrigin = false;
 
     // check for next WP
@@ -165,7 +165,7 @@ MspController::Mission::executeAction(waypointReachedData_t* wpdata) {
         for (size_t i = 0; i < items->size(); i++) {
             mavlink_mission_item_t item = (*items)[i];
             int id = (int)item.param1;
-
+    sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
             switch (item.command)
             {
             case MAV_CMD_USER_2:
@@ -247,8 +247,13 @@ writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, s
     j["y"] = wpdata->latitude;
     j["z"] = wpdata->altitude;
     j["date"] = dstream.str();
+    std::string file_path;
+    file_path.append(WP_EXPORT_PATH);
+    file_path.append("/wp");
+    file_path.append(std::to_string(wpdata->index));
+    file_path.append(".json");
 
-    std::ofstream ofs(std::string(WP_EXPORT_PATH) + "/ wp" + std::to_string(wpdata->index) + ".json");
+    std::ofstream ofs(file_path);
     ofs << std::setw(4) << j << std::endl;
 }
 

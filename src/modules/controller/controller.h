@@ -50,8 +50,7 @@ class MspController {
             stateInit(this),
             stateIdle(this),
             stateMission(this),
-            stateCommand(this),
-            stateSim(this)
+            stateCommand(this)
         {}
 
         static MspController *instance;
@@ -124,24 +123,9 @@ class MspController {
                 EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
-        class Simulation : public State {
-            public:
-                void entry() override;
-                Simulation(MspController *context) : State(context) {};
-                void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
-                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
-
-            private:
-                std::thread runner;
-
-                void missionStart();
-                void missionRun();
-        };
-
         Init stateInit;
         Idle stateIdle;
         Mission stateMission;
         Command stateCommand;
-        Simulation stateSim;
 
 };

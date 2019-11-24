@@ -6,8 +6,6 @@
 
 struct MspVehicle {
 
-    public:
-        //virtual EResult cmdCallback(EVehicleCmd cmd, void* data, size_t len) = 0;
         
 };
 
@@ -24,7 +22,6 @@ class MspMockVehicle : public MspVehicle {
         EResult resumeWaypointMission();
 
     private:
-        std::thread runner;
-
+        
         void missionRun();
 };

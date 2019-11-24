@@ -135,7 +135,7 @@ Mavlink::set_channel()
 		break;
 
 	default:
-    	printf("only udp and dji channels");
+        spdlog::critical("only 2 mavlink channels");
 		exit(EXIT_FAILURE);
 		break;
 	}

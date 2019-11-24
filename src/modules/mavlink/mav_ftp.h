@@ -36,7 +36,7 @@ class MavlinkFtpManager : public MavlinkServiceManager
                 uint16_t seq_rec = 0;
                 uint8_t session = 0;
                 uint8_t reqCode;
-                char *cpath;
+                const char *cpath;
 
                 // Functions
                 void sendNakFailure(uint8_t sysid, uint8_t compid, uint8_t failure); 

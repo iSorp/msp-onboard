@@ -1,7 +1,7 @@
 #include "msp_vehicle.h"
 
 static MspMockVehicle* mspVehicle;
-
+static std::thread runner;
 
 static EResult 
 cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
@@ -59,6 +59,10 @@ MspMockVehicle::handleStateRequest() {
 
 EResult
 MspMockVehicle::runWaypointMission() {
+    if (runner.joinable()){
+        runner.join();
+    }
+
     spdlog::info("start mission simulation thread");
     runner = std::thread(&MspMockVehicle::missionRun, this);
     return EResult::MSP_SUCCESS;

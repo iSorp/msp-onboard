@@ -24,3 +24,6 @@
  * Mission
  */
 #define WP_EXPORT_PATH "/var/msp-onboard/export"
+
+
+#define FTP_PATH "/var/msp-onboard/export"

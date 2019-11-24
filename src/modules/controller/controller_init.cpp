@@ -1,4 +1,6 @@
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 
 #include "controller.h"
@@ -29,85 +31,8 @@ MspController::Init::vehicleNotification(EVehicleNotification notification, Vehi
             context->setState(&context->stateIdle);
         }
         else {
-            context->setState(&context->stateSim);
+            spdlog::critical("vehicle not in proper state");
+            exit();
         } 
-    }
-}
-
-//-------------------------------------------------------------
-// Class Simulation 
-//-------------------------------------------------------------
-void
-MspController::Simulation::entry() {
-    spdlog::info("Simulation active");
-}
-
-EResult 
-MspController::Simulation::cmdExecute(uint16_t command, mavlink_command_long_t cmd) {
-    EResult res = EResult::MSP_FAILED;
-    switch (command)
-    {
-        case MAV_CMD_NAV_TAKEOFF:
-        
-            break;
-        case MAV_CMD_NAV_LAND:
-        
-        break;
-        case MAV_CMD_NAV_RETURN_TO_LAUNCH:
-            
-            break;
-        case MAV_CMD_MISSION_START:
-            if (runner.joinable()) {
-                res = EResult::MSP_BUSY;
-            }
-            missionStart();
-            res = EResult::MSP_SUCCESS;
-            break;
-        case MAV_CMD_DO_PAUSE_CONTINUE:
-
-            break;
-        default:
-            spdlog::warn("MspController::Simulation::cmdExecute, command not available");
-            res =  EResult::MSP_INVALID;
-            break;
-    }
-
-    return res; 
-}
-
-void 
-MspController::Simulation::vehicleNotification(EVehicleNotification notification, VehicleData data) {
-    spdlog::debug("wayPointCallback");
-}
-
-void 
-MspController::Simulation::missionStart() {
-
-	spdlog::info("start mission simulation thread");
-    runner = std::thread(&MspController::Simulation::missionRun, this);
-}
-
-void 
-MspController::Simulation::missionRun() {
-    spdlog::info("thread running");
-    sleep(2);
-    
-    for (int i = 0; i < MspController::getInstance()->getMissionItemCount(); i++) {
-
-        mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
-        if (item) {
-            spdlog::debug("way point reached");
-
-            // Current waypoint data
-            waypointReachedData_t wpdata;
-            wpdata.index = i;
-
-            wpdata.latitude  = item->y;
-            wpdata.longitude = item->x;
-            wpdata.altitude  = item->z;
-
-            MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
-        }
-        sleep(1);
     }
 }

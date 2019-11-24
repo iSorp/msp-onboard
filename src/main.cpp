@@ -13,7 +13,7 @@
 #include "sensors.h"
 
 #define MAVLKIN_UDP
-#define DEBUG_SENSORS
+//#define DEBUG_SENSORS
 
 #ifdef DJI_OSDK
     #include "dji_vehicle.hpp"
