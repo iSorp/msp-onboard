@@ -1,14 +1,8 @@
 #pragma once
 
-#include <thread>
 #include "controller.h"
 
-
-struct MspVehicle {
-
-        
-};
-
+using MspVehicle = struct {};
 
 class MspMockVehicle : public MspVehicle {
 
@@ -22,6 +16,5 @@ class MspMockVehicle : public MspVehicle {
         EResult resumeWaypointMission();
 
     private:
-        
         void missionRun();
 };

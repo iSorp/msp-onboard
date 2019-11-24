@@ -9,9 +9,4 @@ class MspDjiVehicle : public MspVehicle {
     public:
         MspDjiVehicle() : MspVehicle() {};
         void initialize(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment, Mavlink* mavlinkDJI);
-       // EResult cmdCallback(EVehicleCmd cmd, void* data, size_t len) override;
-
-    private:
-        MavlinkDJI* mavlink;
-        Vehicle* vehicle;
 };

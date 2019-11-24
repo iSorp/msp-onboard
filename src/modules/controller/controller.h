@@ -6,7 +6,7 @@
 #include "spdlog/spdlog.h"
 #include "defines.h"
 #include "controller_def.h"
-#include "msp_vehicle.h"
+#include "mspvehicle.h"
 #include "mav_mavlink.h"
 
 class MspController {

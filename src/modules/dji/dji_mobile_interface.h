@@ -7,5 +7,8 @@
 #include "dji_mobile_interface.h"
 #include "dji_mavlink.h"
 
-void
-setupMSDKComm(Vehicle* vehicle, LinuxSetup* linuxEnvironment, MavlinkDJI* mavlinkDJI);
+void mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData);
+void sendDataToMSDK(uint8_t* data, uint8_t len);
+
+extern Vehicle* vehicle;
+extern MavlinkDJI* mavlink;

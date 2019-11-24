@@ -4,7 +4,7 @@ set (dji_src
     dji_mavlink.cpp
     dji_mobile_interface.cpp
     dji_mission_interface.cpp
-    dji_vehicle.cpp
+    dji_mspvehicle.cpp
     )
 
 

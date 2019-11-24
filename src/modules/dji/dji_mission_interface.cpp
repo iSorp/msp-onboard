@@ -10,38 +10,17 @@
 using namespace DJI::OSDK;
 using namespace DJI::OSDK::Telemetry;
 
+static std::vector<WayPointSettings> wp_list;
+static WayPointFinishData wayPointFinishData;
+static WayPointFinishData eventWayPointFinishData;
 
-Vehicle* vehicle;
-std::vector<WayPointSettings> wp_list;
-WayPointFinishData wayPointFinishData;
-WayPointFinishData eventWayPointFinishData;
-
-int responseTimeout = 3;
-
-const int DEFAULT_PACKAGE_INDEX = 0;
+static int responseTimeout = 3;
+static const int DEFAULT_PACKAGE_INDEX = 0;
 
 //-------------------------------------------------------------
 // Static funcitions
 //-------------------------------------------------------------
 
-static EResult 
-handleStateRequest();
-
-static EResult 
-cmdCallback(EVehicleCmd cmd, void* data, size_t len);
-static EResult
-runWaypointMission(); 
-static EResult
-pauseWaypointMission();
-static EResult
-resumeWaypointMission();
-static EResult
-uploadWaypoints();
-static EResult
-takePicture(void* data);
-
-void
-createWaypoints();
 static void
 setWaypointDefaults(WayPointSettings* wp);
 static void
@@ -49,22 +28,8 @@ setWaypointInitDefaults(WayPointInitSettings* fdata);
 static void
 setGimbalAngle(Vehicle* vehicle, GimbalContainer* gimbal);
 
-//-------------------------------------------------------------
-// Initialize Mission functionalities
-//-------------------------------------------------------------
-void
-setupDJIMission(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment){
-    // registered dji vehicle
-    vehicle = vehicleDJI;
-
-    // set callback for controller command data
-    MspController::getInstance()->vehicleCmd = &cmdCallback;
-}
-//-------------------------------------------------------------
-// Calback command function from/To MSPController
-//-------------------------------------------------------------
 EResult 
-cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
+cmdMissionCallback(EVehicleCmd cmd, void* data, size_t len) {
     EResult ret = EResult::MSP_FAILED; 
     switch (cmd)
     {
@@ -94,7 +59,6 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
     }
     return ret;
 }
-
 
 EResult 
 handleStateRequest() {

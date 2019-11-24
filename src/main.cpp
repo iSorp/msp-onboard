@@ -8,7 +8,6 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 
 #include "mav_mavlink_udp.h"
-#include "dji_vehicle.h"
 #include "controller.h"
 #include "sensors.h"
 
@@ -16,21 +15,23 @@
 //#define DEBUG_SENSORS
 
 #ifdef DJI_OSDK
+    #include "dji_mspvehicle.h"
     #include "dji_vehicle.hpp"
     #include "dji_linux_helpers.hpp"
     #include "dji_mavlink.h"
     #include "dji_mobile_interface.h"
     #include "dji_mission_interface.h"
+
+    MspDjiVehicle mspDjiVehicle;
+    LinuxSetup* linuxEnvironment = nullptr;
+    Vehicle* vehicle = nullptr;
 #endif
 
 MspMockVehicle mspMockVehicle;
-MspDjiVehicle mspDjiVehicle;
-
 Mavlink* mavlink = nullptr;
 std::thread mavThread;
 
-LinuxSetup* linuxEnvironment = nullptr;
-Vehicle* vehicle = nullptr;
+
 
 
 void waitForExit() {
