@@ -16,12 +16,8 @@ MspDjiVehicle::initialize(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment, Mav
     MspController::getInstance()->vehicleCmd = &cmdMissionCallback;
 
     // set callback for mavlink send data
-    if (mavlink){
-        mavlink->sendDataCallback = &sendDataToMSDK;
-    }
+    mavlink->sendDataCallback = &sendDataToMSDK;
     
-    // register callback for mobile data
-    if (vehicle){
-        vehicle->mobileDevice->setFromMSDKCallback(mobileCallback, linuxEnvironment);
-    } 
+    // set callback for mobile data
+    vehicle->mobileDevice->setFromMSDKCallback(mobileCallback, linuxEnvironment);
 }

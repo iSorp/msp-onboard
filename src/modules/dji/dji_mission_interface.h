@@ -1,6 +1,6 @@
 #include <dji_vehicle.hpp>
 #include <dji_linux_helpers.hpp>
-
+#include "controller.h"
 
 EResult cmdMissionCallback(EVehicleCmd cmd, void* data, size_t len);
 

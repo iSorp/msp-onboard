@@ -5,7 +5,6 @@
 
 #include "dji_camera_gimbal_def.h"
 #include "dji_mission_interface.h"
-#include "controller.h"
 
 using namespace DJI::OSDK;
 using namespace DJI::OSDK::Telemetry;
@@ -275,7 +274,7 @@ setWaypointInitDefaults(WayPointInitSettings* fdata)
 //-------------------------------------------------------------
 // Camera actions
 //-------------------------------------------------------------
-static EResult 
+EResult 
 takePicture(void* data) {
     EResult ret = EResult::MSP_FAILED;
 

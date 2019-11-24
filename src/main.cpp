@@ -19,17 +19,16 @@
     #include "dji_vehicle.hpp"
     #include "dji_linux_helpers.hpp"
     #include "dji_mavlink.h"
-    #include "dji_mobile_interface.h"
-    #include "dji_mission_interface.h"
 
-    MspDjiVehicle mspDjiVehicle;
-    LinuxSetup* linuxEnvironment = nullptr;
-    Vehicle* vehicle = nullptr;
+
+    static MspDjiVehicle mspDjiVehicle;
+    static LinuxSetup* linuxEnvironment = nullptr;
+    static Vehicle* vehicle = nullptr;
 #endif
 
-MspMockVehicle mspMockVehicle;
-Mavlink* mavlink = nullptr;
-std::thread mavThread;
+static MspMockVehicle mspMockVehicle;
+static Mavlink* mavlink = nullptr;
+static std::thread mavThread;
 
 
 
