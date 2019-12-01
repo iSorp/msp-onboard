@@ -19,11 +19,13 @@ const static uint8_t DATA        = 0x0C;  // 12->251
 
 
 // OpCodes/Command
-const static uint8_t TERM       = 0x01;
-const static uint8_t OpenFileRO = 0x04;
-const static uint8_t ReadFile   = 0x05;
-const static uint8_t ACK        = 0x80;    // 128
-const static uint8_t NAK        = 0x81;    // 129
+const static uint8_t TERM               = 0x01;
+const static uint8_t ListDirectory      = 0x03;
+const static uint8_t OpenFileRO         = 0x04;
+const static uint8_t ReadFile           = 0x05;
+const static uint8_t RemoveDirectory    = 0x10;
+const static uint8_t ACK                = 0x80;    // 128
+const static uint8_t NAK                = 0x81;    // 129
 
 // NAK Error Information payload data[0]
 const static uint8_t FAIL       = 0x01;

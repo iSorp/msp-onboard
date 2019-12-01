@@ -11,7 +11,7 @@
  */
 #define ORB_MULTI_MAX_INSTANCES	2
 
-#define SYSID   1
+#define SYSID   2
 #define COMPID  1
 
 #define MAX_MISSION_ITEM_COUNT  200

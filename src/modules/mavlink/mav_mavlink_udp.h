@@ -7,7 +7,7 @@
 class MavlinkUDP : public Mavlink {
     public: 
         MavlinkUDP(int _src_port, int _remote_port) :
-            src_port(_src_port), remote_port(_remote_port) { }
+            local_port(_src_port), remote_port(_remote_port) { }
         ~MavlinkUDP();
 
         void beginSend() override { }
@@ -20,10 +20,12 @@ class MavlinkUDP : public Mavlink {
 
     private:
         bool initialized;
-        int	socket_fd = -1;
+        int loc_socket_fd = -1;
+        int	rmt_socket_fd = -1;
         sockaddr_in	loc_addr;
-        sockaddr_in	src_addr;
-        unsigned short src_port;
+        sockaddr_in	rmt_addr;
+
+        unsigned short local_port;
         unsigned short remote_port;
         const char* remote_ip;
 

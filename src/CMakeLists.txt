@@ -10,11 +10,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
-  set(COMMON_CXX_FLAGS "-std=c++11 -fPIC -Wall -Wno-psabi")
+  set(COMMON_CXX_FLAGS "-std=c++17 -fPIC -Wall -Wno-psabi")
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES Darwin)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall")
 endif ()
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -27,7 +27,8 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
 endif ()
 
 
-#find_package(.. REQUIRED)
+# link additional libraries
+link_libraries(stdc++fs)
 
 
 # Dji-Onboard-SDK
@@ -54,7 +55,6 @@ FILE(GLOB COMMMON_LIB_HEADERS
 include_directories("${COMMMON_LIB_HEADERS}")
 include_directories("${PROJECT_SOURCE_DIR}")
 
-
 # submodules
 if (DJI_OSDK)
     add_subdirectory(modules/dji)
@@ -62,7 +62,6 @@ endif(DJI_OSDK)
 add_subdirectory(modules/sensors)
 add_subdirectory(modules/mavlink)
 add_subdirectory(modules/controller)
-
 
 # executable
 add_executable(msp-onboard main.cpp)

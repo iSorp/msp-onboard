@@ -1,6 +1,7 @@
 #include <stdio.h>
-//#include <string.h>
+#include <string>
 #include <iostream>
+#include <filesystem>
 #include <string>
 #include <chrono>
 #include <thread>
@@ -11,6 +12,17 @@
 #include "helper.h"
 
 using namespace std;
+namespace fs = std::filesystem;
+
+
+static void 
+eraseSubStr(std::string & mainStr, const std::string & toErase) {
+	size_t pos = mainStr.find(toErase);
+	if (pos != std::string::npos)
+	{
+		mainStr.erase(pos, toErase.length());
+	}
+}
 
 //-------------------------------------------------------------
 // Class MavlinkFtpManager
@@ -21,24 +33,36 @@ MavlinkFtpManager::run() {
 }
 
 void
-MavlinkFtpManager::handle_message(const mavlink_message_t *msg)
-{
+MavlinkFtpManager::handle_message(const mavlink_message_t *msg) {
     if (msg->msgid == MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL) {
         mavlink_file_transfer_protocol_t ftp;
         mavlink_msg_file_transfer_protocol_decode(msg, &ftp);
 
-        // Initialize state machine iff no session exists (only one sessio possible)
-        if (fileUploadService.session <= 0) {
-            spdlog::info("MavlinkFtpManager::handle_message,  start file upload");
-            fileUploadService.setState(&fileUploadService.fileUploadInit);
+        // Initialize state machine iff no session exists (only one session possible)
+        if (ftp.payload[CODE] == OpenFileRO) {
+            if (fileUploadService.session <= 0) {
+                spdlog::info("MavlinkFtpManager::handle_message,  start file upload");
+                fileUploadService.setState(&fileUploadService.fileUploadInit);
+            }
+            // send error on file open request
+            else {
+                spdlog::warn("MavlinkFtpManager::handle_message, no session available");
+                fileUploadService.sendNakFailure(msg->sysid, msg->compid, NOSESS);
+            }
         }
-        // send error on file open request
-        else if (ftp.payload[CODE] == OpenFileRO) {
-            spdlog::warn("MavlinkFtpManager::handle_message, no session available");
-            fileUploadService.sendNakFailure(msg->sysid, msg->compid, NOSESS);
+
+
+        // list directory request
+        if (ftp.payload[CODE] == ListDirectory) {
+            if (typeid(*listDirectoryService.getState()) == typeid(ListDirectoryService::ListDirectoryInit)) {
+            
+                spdlog::info("MavlinkFtpManager::handle_message,  start list directory");
+                listDirectoryService.setState(&listDirectoryService.listDirectoryWrite);
+            }
         }
 
         fileUploadService.getState()->handleMessage(msg);
+        listDirectoryService.getState()->handleMessage(msg);
     }  
 }
 
@@ -118,7 +142,7 @@ MavlinkFtpManager::FileUploadService::sendEofData() {
     ftp.payload[REQCODE]    = reqCode;
     ftp.payload[DATA]       = NEOF;
     
-    // send message: ACK( session, size=4, data=len(file) )
+    // send message: NAK
     mavlink_msg_file_transfer_protocol_send_struct(mavlink->getChannel(), &ftp);
 }
 
@@ -207,7 +231,6 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
             // initialize state machine (closes session, closes file)
             context->setState(&context->fileUploadInit);
         }
-        
     }
 }
 
@@ -270,7 +293,6 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
     }
 }
 
- 
 void
 MavlinkFtpManager::FileUploadService::FileUploadWrite::run() { 
 
@@ -334,6 +356,123 @@ MavlinkFtpManager::FileUploadService::FileUploadEnd::run() {
             context->sendNakFailure(context->transferSysId, context->transferCompId, FAIL);
             // initialize state machine (closes session, closes file)
             context->setState(&context->fileUploadInit);
+        }
+    }
+}
+
+//-------------------------------------------------------------
+// Class ListDirectoryService 
+//-------------------------------------------------------------
+
+void
+MavlinkFtpManager::ListDirectoryService::sendData(const char *buffer, const size_t size) {
+
+    // Build message payload
+    mavlink_file_transfer_protocol_t ftp;
+
+    ftp.target_system       = transferSysId;
+    ftp.target_component    = transferCompId;
+    ftp.payload[CODE]       = ACK; 
+    ftp.payload[SIZE]       = size;
+    
+    memcpy(&ftp.payload[DATA], buffer, size);
+
+    // send message: ACK(size, data=entries_at_offset_...)
+    mavlink_msg_file_transfer_protocol_send_struct(mavlink->getChannel(), &ftp);
+}
+
+/**
+ * Message send: NAK(session, size=1, data=EOF)
+ */
+void
+MavlinkFtpManager::ListDirectoryService::sendEofData() {
+
+    // Build message payload
+    mavlink_file_transfer_protocol_t ftp;
+
+    ftp.target_system       = transferSysId;
+    ftp.target_component    = transferCompId;
+    ftp.payload[CODE]       = NAK; 
+    ftp.payload[SIZE]       = 1;
+    ftp.payload[DATA]       = NEOF;
+    
+    // send message: NACK(size=1, data[0]=EOF)
+    mavlink_msg_file_transfer_protocol_send_struct(mavlink->getChannel(), &ftp);
+}
+
+//-------------------------------------------------------------
+// Class ListDirectoryWrite 
+//-------------------------------------------------------------
+void
+MavlinkFtpManager::ListDirectoryService::ListDirectoryWrite::entry() { 
+    context->offset = 0;
+    context->entries = "";
+}
+
+void
+MavlinkFtpManager::ListDirectoryService::ListDirectoryWrite::handleMessage(const mavlink_message_t *msg) { 
+    mavlink_file_transfer_protocol_t ftp;
+    mavlink_msg_file_transfer_protocol_decode(msg, &ftp);
+
+    // Message received: ListDirectory( data[0]=path, size=len(path), offset=0 )
+    if (ftp.payload[CODE] == ListDirectory) {
+
+        int offset = 0;
+        int count = 0;
+        string path(FTP_PATH);
+        string s;
+        string entries;
+        string entryPath;
+        
+        for (const auto & entry : fs::directory_iterator(path)) {
+            ++count;
+            if (count <= context->offset) continue;
+
+            entryPath = entry.path();
+            eraseSubStr(entryPath, path+"/");
+
+            if (entry.is_directory()) {
+                s = "D"+entryPath+"\\0";
+            }
+            if (entry.is_regular_file()) {
+                s = "F"+entryPath+"\\t"+ to_string(entry.file_size()) + "\\0";
+            }
+
+            if (s.size() + entries.size() < DATA_SIZE) {
+                entries.append(s);
+                ++offset;
+            }
+            else {
+                break;
+            }
+        }
+        
+        context->offset += offset;
+
+        if (offset > 0) {
+            spdlog::debug(entries);
+            context->sendData(entries.c_str(), entries.size());
+        }
+        else {
+            spdlog::debug("ListDirectoryWrite, Eof");
+            context->sendEofData();
+            context->setState(&context->listDirectoryInit);
+        }
+    }
+}
+
+void
+MavlinkFtpManager::ListDirectoryService::ListDirectoryWrite::run() { 
+
+    if ((microsSinceEpoch() - context->mavlink->getSendTime()) > context->sendResponseTimeout) {
+        if (context->repeatCounter < MAV_MAX_RETRIES) {
+            ++context->repeatCounter;
+        }
+        else {
+            spdlog::warn("FileUploadWrite::run, max retries reached");
+            //context->sendNakFailure(context->transferSysId, context->transferCompId, FAIL);
+            // initialize state machine (closes session, closes file)
+            context->setState(&context->listDirectoryInit);
         }
     }
 }

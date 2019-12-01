@@ -126,7 +126,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::entry() {
     context->wpIndex = 0;
     context->retries = 0;
     context->count = 0;
-    context->seq = 1;
+    context->seq = 0;
     context->transferSysId = 0;
     context->transferCompId = 0;
     context->repeatCounter = 0;
@@ -182,7 +182,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadItem::handleMessag
             }
         }
 
-        if (context->seq <= context->count) {
+        if (context->seq < context->count) {
             // send next item request
             context->handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);
         }

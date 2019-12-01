@@ -10,46 +10,64 @@
 // Class MavlinkUDP
 //-------------------------------------------------------------
 MavlinkUDP::~MavlinkUDP() {
-    if (socket_fd >= 0) {    
-		close(socket_fd);
-		socket_fd = -1;
+    if (loc_socket_fd >= 0) {    
+		close(loc_socket_fd);
+	}
+    if (rmt_socket_fd >= 0) {    
+		close(rmt_socket_fd);
 	}
 }
 
 void
 MavlinkUDP::init(){
 
-	loc_addr.sin_family      = AF_INET;
+    // Initialize socket for receiving
+    loc_addr.sin_family      = AF_INET;
 	loc_addr.sin_addr.s_addr = INADDR_ANY;
-	loc_addr.sin_port        = htons(src_port);
+	loc_addr.sin_port        = htons(local_port);
 
-    if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+    if ((loc_socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         spdlog::error("MavlinkUDP::init, " + EXIT_FAILURE);
 		exit(EXIT_FAILURE);
 	}
-
-	if (-1 == bind(socket_fd,(struct sockaddr *)&loc_addr, sizeof(struct sockaddr)))
-    {
+	if (-1 == bind(loc_socket_fd,(struct sockaddr *)&loc_addr, sizeof(struct sockaddr))) {
         spdlog::error("MavlinkUDP::init, error bind failed");
-		close(socket_fd);
 		exit(EXIT_FAILURE);
     } 
-
-	if (fcntl(socket_fd, F_SETFL, O_NONBLOCK | O_ASYNC) < 0)
-    {
+    if (fcntl(loc_socket_fd, F_SETFL, O_NONBLOCK | O_ASYNC) < 0){
         spdlog::error("MavlinkUDP::init, error setting nonblocking " + errno);
-		close(socket_fd);
 		exit(EXIT_FAILURE);
     }
 
-    // initialize socket for remote (address is binded when the first paket arrives)
-    //memset(&src_addr, 0, sizeof(src_addr));
-    src_addr.sin_family = AF_INET;
-    src_addr.sin_port   = htons(remote_port);
-
     // add the UDP Socket to the event loop file descriptor 
-    fds[0].fd     = socket_fd;
+    fds[0].fd     = loc_socket_fd;
     fds[0].events = POLLIN;
+
+
+    // Initialize socket for sending
+    rmt_addr.sin_family = AF_INET;
+    rmt_addr.sin_port   = htons(remote_port);
+    rmt_addr.sin_addr.s_addr = inet_addr("255.255.255.255"); // set broatcast address
+
+    if ((rmt_socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+        spdlog::error("MavlinkUDP::init, " + EXIT_FAILURE);
+		exit(EXIT_FAILURE);
+	}
+    int broadcastEnable=1;
+    if (-1 == setsockopt(rmt_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable))) {
+        spdlog::error("MavlinkUDP::init, error bind failed");
+		exit(EXIT_FAILURE);
+    }
+	if (-1 == bind(rmt_socket_fd,(struct sockaddr *)&rmt_addr, sizeof(struct sockaddr))){
+        spdlog::error("MavlinkUDP::init, error bind failed");
+		exit(EXIT_FAILURE);
+    } 
+	if (fcntl(rmt_socket_fd, F_SETFL, O_NONBLOCK | O_ASYNC) < 0){
+        spdlog::error("MavlinkUDP::init, error setting nonblocking " + errno);
+		exit(EXIT_FAILURE);
+    }
+
+    spdlog::info("MavlinkUDP::init, udp sockts initialized, start listenering for remote connection");
 }
 
 void
@@ -65,12 +83,12 @@ int
 MavlinkUDP::sendPacket()
 {
     Mavlink::sendPacket();
-	if (send_buf_len == 0 || !initialized) {
+	if (send_buf_len == 0) {
 		return 0;
 	}
 
-    int ret = sendto(socket_fd, send_buf, send_buf_len, 0, 
-        (struct sockaddr *)&src_addr, sizeof(src_addr));
+    int ret = sendto(rmt_socket_fd, send_buf, send_buf_len, 0, 
+        (struct sockaddr *)&rmt_addr, sizeof(rmt_addr));
     
     send_buf_len = 0;
 	return ret;
@@ -88,12 +106,21 @@ MavlinkUDP::handleMessages() {
         int nread = 0;
 
         if (fds[0].revents & POLLIN) {
-            nread = recvfrom(socket_fd, buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+            nread = recvfrom(loc_socket_fd, buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
         }
 
         // binds the remote ip address when the first paket arrives (remote port is fix)
         if (!initialized) {
-            src_addr.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+
+            // disable broatcasting
+            int broadcastEnable=0;
+            if (-1 == setsockopt(rmt_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable))) {
+                spdlog::error("MavlinkUDP::handleMessages, disable broatcast failed");
+                exit(EXIT_FAILURE);
+            }
+
+            // assign ip address from remote
+            rmt_addr.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
             initialized = true;
             spdlog::info("udp remote address initialized: " + std::string(inet_ntoa(srcaddr.sin_addr)));
         }

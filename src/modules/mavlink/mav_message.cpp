@@ -38,7 +38,7 @@ MavlinkMessageManager::handle_message_heartbeat(const mavlink_message_t *msg)
 	if (mavlink->getChannel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
-
+        
         /// handle heartbeat from gcs
 	}
 }

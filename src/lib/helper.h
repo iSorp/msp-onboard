@@ -1,16 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <iostream>
+#include <string>
 #include <sys/time.h>
 #include <type_traits>
-#include <iostream>
-
-// https://www.tutorialspoint.com/cplusplus-equivalent-of-instanceof
-template<typename Base, typename T>
-inline bool instanceof(const T*) {
-   return std::is_base_of<Base, T>::value;
-}
-
 
 /*******************************************************************************
  Copyright (C) 2010  Bryan Godbolt godbolt ( a t ) ualberta.ca
@@ -56,8 +50,3 @@ inline uint64_t microsSinceEpoch()
 	return micros;
 }
 #endif
-
-
-
-
-

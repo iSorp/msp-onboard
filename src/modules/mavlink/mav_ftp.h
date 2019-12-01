@@ -12,7 +12,8 @@ class MavlinkFtpManager : public MavlinkServiceManager
 {
     public:
         MavlinkFtpManager(Mavlink *mavlink) : MavlinkServiceManager(mavlink),
-            fileUploadService(mavlink) {}
+            fileUploadService(mavlink),
+            listDirectoryService(mavlink) {}
         void handle_message(const mavlink_message_t *msg) override;
         void run() override;
 
@@ -74,8 +75,42 @@ class MavlinkFtpManager : public MavlinkServiceManager
                 FileUploadEnd fileUploadEnd;
         };     
 
+        class ListDirectoryService : public MavlinkService {
+            public:
+                ListDirectoryService(Mavlink *mavlink) : MavlinkService(mavlink),  
+                    listDirectoryInit(this),
+                    listDirectoryWrite(this)
+                { 
+                    state = (ServiceState<>*)&listDirectoryInit;
+                };
+                
+                // Variables
+                uint16_t offset = 0;
+                std::string entries;
+
+                // Functions
+                void sendData(const char *buffer, const size_t size);
+                void sendEofData();
+
+                class ListDirectoryInit : public ServiceState<ListDirectoryService> {
+                    public:
+                        ListDirectoryInit(ListDirectoryService *context) : ServiceState(context) {};
+                };
+                class ListDirectoryWrite : public ServiceState<ListDirectoryService> {
+                    public:
+                        ListDirectoryWrite(ListDirectoryService *context) : ServiceState(context) {};
+                        void handleMessage(const mavlink_message_t *msg) override;
+                        void entry() override;
+                        void run() override;
+                };
+
+                // States
+                ListDirectoryInit listDirectoryInit;
+                ListDirectoryWrite listDirectoryWrite;
+        };   
     private:      
         FileUploadService fileUploadService;
+        ListDirectoryService listDirectoryService;
 
 };
 
