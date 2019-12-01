@@ -16,11 +16,11 @@ MavlinkCommandManager::run() {
 }
 
 void
-MavlinkCommandManager::handle_message(const mavlink_message_t *msg)
+MavlinkCommandManager::handleMessages(const mavlink_message_t *msg)
 {
     // command int not supported
     if(msg->msgid == MAVLINK_MSG_ID_COMMAND_INT) {
-        spdlog::warn("MavlinkCommandManager::handle_message, mavlink command not supported");
+        spdlog::warn("MavlinkCommandManager::handleMessages, mavlink command not supported");
         commandService.sendCmdAck(0, MAV_RESULT_UNSUPPORTED);
         return;
     }

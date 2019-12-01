@@ -30,7 +30,7 @@ class MavlinkDJI : public Mavlink {
 
     protected:
         void init() override { };
-        void handleMessages() override;
+        void runService() override;
 
     private:
         uint8_t* buffer;

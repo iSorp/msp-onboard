@@ -19,12 +19,12 @@ MavlinkMessageManager::run() {
 }
 
 void
-MavlinkMessageManager::handle_message(const mavlink_message_t *msg)
+MavlinkMessageManager::handleMessages(const mavlink_message_t *msg)
 {
     switch (msg->msgid)
     {
     case MAVLINK_MSG_ID_HEARTBEAT:
-        handle_message_heartbeat(msg);
+        handleMessages_heartbeat(msg);
         break;
     
     default:
@@ -33,7 +33,7 @@ MavlinkMessageManager::handle_message(const mavlink_message_t *msg)
 }
 
 void
-MavlinkMessageManager::handle_message_heartbeat(const mavlink_message_t *msg)
+MavlinkMessageManager::handleMessages_heartbeat(const mavlink_message_t *msg)
 {
 	if (mavlink->getChannel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
 		mavlink_heartbeat_t hb;

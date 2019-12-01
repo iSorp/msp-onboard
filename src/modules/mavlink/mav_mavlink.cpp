@@ -85,7 +85,7 @@ std::thread Mavlink::start()
 {
 	spdlog::info("start mavlink event loop");
     instance_id = instanceList.size();
-    set_channel();
+    setChannel();
     instanceList.push_back(this);
     init();
 
@@ -98,15 +98,6 @@ std::thread Mavlink::start()
     return t;
 } 
 
-void
-Mavlink::run()
-{
-    // Mavlink task loop
-    while (!stopThread) {
-        handleMessages();
-    }
-}
-
 /*
 * Returns a pointer to a Mavlink instance depending on a id
 * @param instance number
@@ -115,7 +106,7 @@ Mavlink *
 Mavlink::get_instance(int instance)
 {
     for (Mavlink *inst : instanceList){
-        if (instance == inst->get_instance_id()) {
+        if (instance == inst->getInstanceId()) {
 			return inst;
 		}
     }
@@ -123,7 +114,7 @@ Mavlink::get_instance(int instance)
 }
 
 void
-Mavlink::set_channel()
+Mavlink::setChannel()
 {
 	switch (instance_id) {
 	case 0:
@@ -148,21 +139,28 @@ Mavlink::sendPacket()
     return 0;
 }
 
-void Mavlink::runServices() {
+void
+Mavlink::run()
+{
+    // Mavlink task loop
+    while (!stopThread) {
+        runService();
+    }
+}
+
+void Mavlink::runService() {
     // handle timeouts and resets
-    message_manager.run();
-    command_manager.run();
-    mission_manager.run();
-    ftp_manager.run();
+    for (auto &service : services) {
+        service->run();
+    }
 }
 
 void
-Mavlink::handle_message(mavlink_message_t *msg)
+Mavlink::handleMessages(mavlink_message_t *msg)
 {
-    message_manager.handle_message(msg);
-    command_manager.handle_message(msg);
-    mission_manager.handle_message(msg);
-    ftp_manager.handle_message(msg);
+    for (auto &service : services) {
+        service->handleMessages(msg);
+    }
 }
 
 /*

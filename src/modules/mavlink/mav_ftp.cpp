@@ -33,7 +33,7 @@ MavlinkFtpManager::run() {
 }
 
 void
-MavlinkFtpManager::handle_message(const mavlink_message_t *msg) {
+MavlinkFtpManager::handleMessages(const mavlink_message_t *msg) {
     if (msg->msgid == MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL) {
         mavlink_file_transfer_protocol_t ftp;
         mavlink_msg_file_transfer_protocol_decode(msg, &ftp);
@@ -41,12 +41,12 @@ MavlinkFtpManager::handle_message(const mavlink_message_t *msg) {
         // Initialize state machine iff no session exists (only one session possible)
         if (ftp.payload[CODE] == OpenFileRO) {
             if (fileUploadService.session <= 0) {
-                spdlog::info("MavlinkFtpManager::handle_message,  start file upload");
+                spdlog::info("MavlinkFtpManager::handleMessages,  start file upload");
                 fileUploadService.setState(&fileUploadService.fileUploadInit);
             }
             // send error on file open request
             else {
-                spdlog::warn("MavlinkFtpManager::handle_message, no session available");
+                spdlog::warn("MavlinkFtpManager::handleMessages, no session available");
                 fileUploadService.sendNakFailure(msg->sysid, msg->compid, NOSESS);
             }
         }
@@ -56,7 +56,7 @@ MavlinkFtpManager::handle_message(const mavlink_message_t *msg) {
         if (ftp.payload[CODE] == ListDirectory) {
             if (typeid(*listDirectoryService.getState()) == typeid(ListDirectoryService::ListDirectoryInit)) {
             
-                spdlog::info("MavlinkFtpManager::handle_message,  start list directory");
+                spdlog::info("MavlinkFtpManager::handleMessages,  start list directory");
                 listDirectoryService.setState(&listDirectoryService.listDirectoryWrite);
             }
         }
@@ -190,7 +190,7 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
 
     // message received: OpenFileRO( data[0]=filePath, size=len(filePath) )
     if (ftp.payload[CODE] == OpenFileRO) {
-        spdlog::debug("FileUploadInit::handle_message, opening file");
+        spdlog::debug("FileUploadInit::handleMessages, opening file");
 
         context->transferSysId  = msg->sysid;
         context->transferCompId = msg->compid;
@@ -205,7 +205,7 @@ MavlinkFtpManager::FileUploadService::FileUploadInit::handleMessage(const mavlin
         context->cpath = cstr;
         context->file.open(string(context->cpath), ios::binary);
         if (context->file.is_open()) {
-            spdlog::debug("FileUploadInit::handle_message, file found and open");
+            spdlog::debug("FileUploadInit::handleMessages, file found and open");
             
             // get length of file:
             context->file.seekg (0, context->file.end);
@@ -271,7 +271,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
             // find file offset, read and write data
             uint32_t offset = *(uint32_t*)&ftp.payload[OFFSET];
 
-            spdlog::debug("FileUploadWrite::handle_message, file open, send data offset: " + std::to_string(offset));
+            spdlog::debug("FileUploadWrite::handleMessages, file open, send data offset: " + std::to_string(offset));
 
             context->file.seekg(offset); 
             if (context->file) {
@@ -286,7 +286,7 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
             }
         }
         else {
-            spdlog::warn("FileUploadWrite::handle_message, file not anymore open");
+            spdlog::warn("FileUploadWrite::handleMessages, file not anymore open");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FNF);
         }
         
@@ -334,7 +334,7 @@ MavlinkFtpManager::FileUploadService::FileUploadEnd::handleMessage(const mavlink
 
     // Wait for message TerminateSession(session)
     if (ftp.payload[CODE] == TERM) {
-        spdlog::info("FileUploadEnd::handle_message, file upload success");
+        spdlog::info("FileUploadEnd::handleMessages, file upload success");
 
         context->sendAckData();
 

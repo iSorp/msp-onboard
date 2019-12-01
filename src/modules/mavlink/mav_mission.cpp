@@ -13,19 +13,19 @@ MavlinkMissionManager::run() {
 }
 
 void
-MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
+MavlinkMissionManager::handleMessages(const mavlink_message_t *msg)
 {
     switch (msg->msgid) {
 
         // Start mission item upload (Creates a new mission)
         case MAVLINK_MSG_ID_MISSION_COUNT:
-            spdlog::info("MavlinkMissionManager::handle_message, start mission download");
+            spdlog::info("MavlinkMissionManager::handleMessages, start mission download");
             missionDownloadService.setState(&missionDownloadService.missionDownloadInit);
             break;
 
         // deletes the current mission
         case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
-            spdlog::info("MavlinkMissionManager::handle_message, mission delete");
+            spdlog::info("MavlinkMissionManager::handleMessages, mission delete");
             missionDelete(msg);
             break;
             

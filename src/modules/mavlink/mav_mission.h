@@ -13,7 +13,7 @@ class MavlinkMissionManager : public MavlinkServiceManager
         MavlinkMissionManager(Mavlink *mavlink) : MavlinkServiceManager(mavlink),
             missionDownloadService(this, mavlink) { }
 
-        void handle_message(const mavlink_message_t *msg) override;
+        void handleMessages(const mavlink_message_t *msg) override;
         void run() override;
         void sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type);
 

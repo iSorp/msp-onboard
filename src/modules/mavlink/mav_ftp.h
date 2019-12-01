@@ -14,7 +14,7 @@ class MavlinkFtpManager : public MavlinkServiceManager
         MavlinkFtpManager(Mavlink *mavlink) : MavlinkServiceManager(mavlink),
             fileUploadService(mavlink),
             listDirectoryService(mavlink) {}
-        void handle_message(const mavlink_message_t *msg) override;
+        void handleMessages(const mavlink_message_t *msg) override;
         void run() override;
 
         // Functions

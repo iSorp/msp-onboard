@@ -16,7 +16,7 @@ class MavlinkUDP : public Mavlink {
 
     protected:
         void init() override;
-        void handleMessages() override;
+        void runService() override;
 
     private:
         bool initialized;

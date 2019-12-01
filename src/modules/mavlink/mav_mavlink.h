@@ -21,7 +21,12 @@ struct Mavlink
         command_manager(this),
         mission_manager(this),
         ftp_manager(this) 
-        { }
+        {
+            services.push_back(&message_manager);     
+            services.push_back(&command_manager);  
+            services.push_back(&mission_manager);  
+            services.push_back(&ftp_manager);  
+         }
 
         virtual ~Mavlink();
 
@@ -50,16 +55,12 @@ struct Mavlink
         const int timeout = 10; // ms
         uint8_t send_buf[MAVLINK_MAX_PACKET_LEN];
         unsigned send_buf_len=0;
+        std::vector<MavlinkServiceManager*> services;
 
-        // functions
-        void runServices();
-
-        // Message functions
-        void handle_message(mavlink_message_t *msg);
-        
         // Virtual functions
         virtual void init() = 0;
-        virtual void handleMessages() = 0;
+        virtual void runService();
+        virtual void handleMessages(mavlink_message_t *msg);
         
         // Microservices
         MavlinkMessageManager message_manager;
@@ -73,20 +74,18 @@ struct Mavlink
 
         bool stopThread;
         int	instance_id;
+        uint64_t sendTime = 0;
 
         mavlink_channel_t channel=MAVLINK_COMM_0;
         mavlink_message_t mavlinkBuffer {};
 	    mavlink_status_t mavlinkStatus {};
 
-        uint64_t sendTime = 0;
 
         // Setter/getter
-        int	get_instance_id() const { return instance_id; };
-
-        // Static functions
-        static int instance_count();
+        int	getInstanceId() const { return instance_id; };
 
         // Funcitons
         void run();
-        void set_channel();
+        void setChannel();
+        static int instanceCount();
 };

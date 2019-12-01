@@ -13,7 +13,7 @@ class MavlinkCommandManager : public MavlinkServiceManager
         MavlinkCommandManager(Mavlink *mavlink) : MavlinkServiceManager(mavlink),
             commandService(mavlink) { }
 
-        void handle_message(const mavlink_message_t *msg) override;
+        void handleMessages(const mavlink_message_t *msg) override;
         void run() override;
 
         void setCmdResult(EResult result){

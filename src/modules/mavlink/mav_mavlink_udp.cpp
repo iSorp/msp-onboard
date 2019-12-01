@@ -96,7 +96,7 @@ MavlinkUDP::sendPacket()
 
 
 void
-MavlinkUDP::handleMessages() {
+MavlinkUDP::runService() {
 
     // check for received data, timeout = 10ms 
     if (poll(&fds[0], 1, timeout) > 0) {
@@ -127,10 +127,9 @@ MavlinkUDP::handleMessages() {
         
         for (ssize_t i = 0; i < nread; i++) {
             if (mavlink_parse_char(getChannel(), buf[i], &msg, &status)) {
-                handle_message(&msg);
+                Mavlink::handleMessages(&msg);
             }
         }
     }
-    
-    Mavlink::runServices();
+    Mavlink::runService();
 }

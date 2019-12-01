@@ -16,11 +16,12 @@ struct MavlinkServiceManager {
 
         ~MavlinkServiceManager() {};
 
+        public:
+            virtual void run() {};
+            virtual void handleMessages(const mavlink_message_t *msg) {};
+
     protected:
         Mavlink *mavlink;
-
-        virtual void handle_message(const mavlink_message_t *msg) {};
-        virtual void run() {};
 };
 
 struct ServiceStateInterface {

@@ -37,8 +37,10 @@ MavlinkDJI::sendPacket()
 }
 
 void
-MavlinkDJI::handleMessages()
+MavlinkDJI::runService()
 {
+    usleep(timeout*1000);
+
     // Synchronizing message buffer from OSDK
     message_lock.lock();
 
@@ -49,15 +51,13 @@ MavlinkDJI::handleMessages()
 
         for (ssize_t i = 0; i < bufferLength; i++) {
             if (mavlink_parse_char(getChannel(), buffer[i], &msg, &status)) {
-                handle_message(&msg); 
+                Mavlink::handleMessages(&msg);
             }
         }
         delete this->buffer;
     }
-    Mavlink::runServices();
-    
+    Mavlink::runService();
     message_lock.unlock();
-    usleep(timeout*1000);
 }
 
 void MavlinkDJI::setBuffer(uint8_t* data, size_t len){
