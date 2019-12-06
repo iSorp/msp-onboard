@@ -12,6 +12,7 @@
 #include "sensors.h"
 
 #define MAVLKIN_UDP
+//#define MAVLKIN_DJI
 //#define DEBUG_SENSORS
 
 #ifdef DJI_OSDK
@@ -108,7 +109,9 @@ int main(int argc, char** argv) {
         #ifdef MAVLKIN_UDP
         mavlink = new MavlinkUDP(5001, 5000);
         mspDjiVehicle.initialize(vehicle, linuxEnvironment, mavlink);
-        #else
+        #endif
+
+        #ifdef MAVLKIN_DJI
         mavlink = new MavlinkDJI();
         mspDjiVehicle.initialize(vehicle, linuxEnvironment, mavlink);
         #endif

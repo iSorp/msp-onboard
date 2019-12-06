@@ -12,6 +12,9 @@ MspDjiVehicle::initialize(Vehicle* vehicleDJI, LinuxSetup* linuxEnvironment, Mav
     mavlink = static_cast<MavlinkDJI*>(mavlinkDJI);
     vehicle = vehicleDJI;
 
+    // Obtain Control Authority
+    vehicle->obtainCtrlAuthority(1);
+
     // set callback for controller command data
     MspController::getInstance()->vehicleCmd = &cmdMissionCallback;
 

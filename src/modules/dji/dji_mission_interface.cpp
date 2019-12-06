@@ -6,14 +6,19 @@
 #include "dji_camera_gimbal_def.h"
 #include "dji_mission_interface.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 using namespace DJI::OSDK;
 using namespace DJI::OSDK::Telemetry;
 
 static std::vector<WayPointSettings> wp_list;
 static WayPointFinishData wayPointFinishData;
 static WayPointFinishData eventWayPointFinishData;
+static VehicleCallBackHandler missionHandler;
 
-static int responseTimeout = 3;
+static int responseTimeout = 1;
 static const int DEFAULT_PACKAGE_INDEX = 0;
 
 //-------------------------------------------------------------
@@ -70,31 +75,29 @@ handleStateRequest() {
     MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &data);
 }
 
-void 
-wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
-    spdlog::debug("wayPointCallback");
-
-    // Current waypoint data
-    ACK::WayPointReachedData wpReachedData = recvFrame.recvData.wayPointReachedData;
-
-    waypointReachedData_t wpdata;
-    wpdata.index = wpReachedData.waypoint_index;
-
-    // Global position retrieved via subscription
-    Telemetry::TypeMap<TOPIC_GPS_FUSED>::type subscribeGPosition;
-    subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
-    wpdata.latitude  = subscribeGPosition.latitude;
-    wpdata.longitude = subscribeGPosition.longitude;
-    wpdata.altitude  = subscribeGPosition.altitude;
-    
-    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
-}
 
 void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
-    spdlog::debug("wayPointEventCallback");
     waypointReachedData_t wpdata;
 
-    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
+    if (recvFrame.recvData.wayPointStatusPushData.current_status == 6) {
+        spdlog::debug("event way point reached");
+
+        // Current waypoint data
+        ACK::WayPointReachedData wpReachedData = recvFrame.recvData.wayPointReachedData;
+
+        waypointReachedData_t wpdata;
+        wpdata.index = wpReachedData.waypoint_index;
+
+        // Global position retrieved via subscription
+        Telemetry::TypeMap<TOPIC_GPS_FUSED>::type subscribeGPosition;
+        subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
+        wpdata.latitude  = subscribeGPosition.latitude;
+        wpdata.longitude = subscribeGPosition.longitude;
+        wpdata.altitude  = subscribeGPosition.altitude;
+        
+        MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata); 
+    }
+
 }
 
 void missionPauseCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
@@ -105,6 +108,63 @@ void missionResumeCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData u
     spdlog::debug("missionResumeCallback");
 }
 
+
+bool
+setUpSubscription(DJI::OSDK::Vehicle* vehicle, int responseTimeout)
+{
+    // Telemetry: Verify the subscription
+    ACK::ErrorCode subscribeStatus;
+
+    subscribeStatus = vehicle->subscribe->verify(responseTimeout);
+    if (ACK::getError(subscribeStatus) != ACK::SUCCESS)
+    {
+        ACK::getErrorCodeMessage(subscribeStatus, __func__);
+        return false;
+    }
+
+    // Telemetry: Subscribe to flight status and mode at freq 10 Hz
+    int       freq            = 10;
+    TopicName topicList10Hz[] = { TOPIC_GPS_FUSED };
+    int       numTopic        = sizeof(topicList10Hz) / sizeof(topicList10Hz[0]);
+    bool      enableTimestamp = false;
+
+    bool pkgStatus = vehicle->subscribe->initPackageFromTopicList(
+    DEFAULT_PACKAGE_INDEX, numTopic, topicList10Hz, enableTimestamp, freq);
+    if (!(pkgStatus))
+    {
+        return pkgStatus;
+    }
+
+    // Start listening to the telemetry data
+    subscribeStatus =
+    vehicle->subscribe->startPackage(DEFAULT_PACKAGE_INDEX, responseTimeout);
+    if (ACK::getError(subscribeStatus) != ACK::SUCCESS)
+    {
+        ACK::getErrorCodeMessage(subscribeStatus, __func__);
+        // Cleanup
+        ACK::ErrorCode ack =
+        vehicle->subscribe->removePackage(DEFAULT_PACKAGE_INDEX, responseTimeout);
+        if (ACK::getError(ack))
+        {
+            std::cout << "Error unsubscribing; please restart the drone/FC to get back to a clean state.\n";
+        }
+        return false;
+    }
+    return true;
+}
+
+bool
+teardownSubscription(DJI::OSDK::Vehicle* vehicle, const int pkgIndex, int responseTimeout) {
+    ACK::ErrorCode ack = vehicle->subscribe->removePackage(pkgIndex, responseTimeout);
+    if (ACK::getError(ack))
+    {
+        std::cout << "Error unsubscribing; please restart the drone/FC to get back "
+            "to a clean state.\n";
+        return false;
+    }
+    return true;
+}
+
 //-------------------------------------------------------------
 // Mission upload and running
 //-------------------------------------------------------------
@@ -112,29 +172,32 @@ EResult
 uploadWaypoints() {
     EResult ret = EResult::MSP_FAILED;
 
+
     // Waypoint Mission : Initialization
     WayPointInitSettings fdata;
     setWaypointInitDefaults(&fdata);
 
-    fdata.indexNumber = wp_list.size() + 1; // We add 1 to get the aircarft back to the start.
+    fdata.indexNumber = wp_list.size(); // We add 1 to get the aircarft back to the start.
 
     if (vehicle) {
+        //vehicle->missionManager->wpMission->stop();
         ACK::ErrorCode initAck = vehicle->missionManager->init(DJI_MISSION_TYPE::WAYPOINT, responseTimeout, &fdata);
         if (ACK::getError(initAck))
         {
             ACK::getErrorCodeMessage(initAck, __func__);
             spdlog::error("uploadWaypoints, fail");
+            return ret;
         }
 
-        for (std::vector<WayPointSettings>::iterator wp = wp_list.begin(); wp != wp_list.end(); ++wp)
+        for (int i = 0; i < wp_list.size(); i++)
         {
+            WayPointSettings* wp = &wp_list[i];
             printf("Waypoint created at (LLA): %f \t%f \t%f\n ", wp->latitude, wp->longitude, wp->altitude);
             ACK::WayPointIndex wpDataACK = vehicle->missionManager->wpMission->uploadIndexData(&(*wp), responseTimeout);
             ACK::getErrorCodeMessage(wpDataACK.ack, __func__);
         }
 
         // Add callback for waypoint management
-        vehicle->missionManager->wpMission->setWaypointCallback(wayPointCallback, &wayPointFinishData);
         vehicle->missionManager->wpMission->setWaypointEventCallback(wayPointEventCallback, &eventWayPointFinishData);
         ret = EResult::MSP_SUCCESS;
     }
@@ -147,7 +210,7 @@ uploadWaypoints() {
 EResult
 runWaypointMission() {
     EResult ret = EResult::MSP_FAILED;
-
+    
     // Waypoint Mission: Start
     if (vehicle)
     {
@@ -199,8 +262,12 @@ resumeWaypointMission() {
 void
 createWaypoints() {
 
-    std::vector<DJI::OSDK::WayPointSettings> wp_list;
+    wp_list.clear();
 
+    if (!setUpSubscription(vehicle, responseTimeout))
+    {
+        std::cout << "Failed to set up Subscription!" << std::endl;
+    }
     // Create Start Waypoint
     WayPointSettings start_wp;
     setWaypointDefaults(&start_wp);
@@ -208,33 +275,38 @@ createWaypoints() {
     // Global position retrieved via subscription
     Telemetry::TypeMap<TOPIC_GPS_FUSED>::type subscribeGPosition;
 
-    if (vehicle){
-        subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
-        start_wp.latitude  = subscribeGPosition.latitude;
-        start_wp.longitude = subscribeGPosition.longitude;
-        start_wp.altitude  = 10;
-    }
-  
-    wp_list.push_back(start_wp);
+    subscribeGPosition = vehicle->subscribe->getValue<TOPIC_GPS_FUSED>();
+    start_wp.latitude  = subscribeGPosition.latitude;
+    start_wp.longitude = subscribeGPosition.longitude;
+    start_wp.altitude  = 10;
+    start_wp.index = 0;
+    //teardownSubscription(vehicle, DEFAULT_PACKAGE_INDEX, responseTimeout);
 
-    for (int i = 1; i < MspController::getInstance()->getMissionItemCount(); i++)
+    //wp_list.push_back(start_wp);
+    
+
+    for (int i = 0; i < MspController::getInstance()->getMissionItemCount(); i++)
     {
         WayPointSettings  wp;
         setWaypointDefaults(&wp);
 
         mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
         if (item){
-            wp.index     = i;
-            wp.latitude  = item->x;
-            wp.longitude = item->y;
+            wp.index     = wp_list.size();
+            wp.longitude  = item->x * M_PI / 180;
+            wp.latitude = item->y * M_PI / 180;
             wp.altitude  = item->z;
-            wp.actionNumber = i;
-            //wp.hasAction // TODO
+            
+            wp.actionNumber = 0;
+            wp.hasAction = 0;// TODO
             //wp.gimbalPitch
             //wp.yaw 
             wp_list.push_back(wp);
         }
     }
+    //wp_list = createWaypoints2(vehicle, numWaypoints,0.000001,20);
+    //start_wp.index = wp_list.size();
+    //wp_list.push_back(start_wp);
 }
 
 void
