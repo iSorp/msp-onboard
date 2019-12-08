@@ -25,11 +25,11 @@ int
 MavlinkDJI::sendPacket()
 {
     Mavlink::sendPacket();
-	if (send_buf_len == 0 || sendDataCallback == NULL) {
+	if (send_buf_len == 0 || sendDataCallbackHandler.callback == NULL) {
 		return 0;
 	}
 
-    sendDataCallback(send_buf, send_buf_len);
+    sendDataCallbackHandler.callback(send_buf, send_buf_len, sendDataCallbackHandler.userData);
     int ret = send_buf_len;
 
     send_buf_len = 0;
@@ -60,7 +60,8 @@ MavlinkDJI::runService()
     message_lock.unlock();
 }
 
-void MavlinkDJI::setBuffer(uint8_t* data, size_t len){
+void 
+MavlinkDJI::setBuffer(uint8_t* data, size_t len){
 
     message_lock.lock();
 
@@ -69,4 +70,11 @@ void MavlinkDJI::setBuffer(uint8_t* data, size_t len){
     memcpy(this->buffer, data, len); 
 
     message_lock.unlock();
+}
+
+
+void 
+MavlinkDJI::setSendDataCallback(SendDataCallback callback, void* userData) {
+    this->sendDataCallbackHandler.callback = callback;
+    this->sendDataCallbackHandler.userData = userData;
 }

@@ -33,7 +33,7 @@
 #define DJIOSDK_CAMERAGIMBALSAMPLE_HPP
 
 // DJI OSDK includes
-#include <dji_linux_helpers.hpp>
+
 #include <dji_vehicle.hpp>
 
 // Be precise here

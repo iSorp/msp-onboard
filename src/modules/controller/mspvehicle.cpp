@@ -1,36 +1,21 @@
 #include <thread>
+#include "controller.h"
 #include "mspvehicle.h"
 
-static MspMockVehicle* mspVehicle;
 static std::thread runner;
 
+
+//-------------------------------------------------------------
+// Static funcitions
+//-------------------------------------------------------------
 static EResult 
-cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
-    EResult ret = EResult::MSP_FAILED; 
-    switch (cmd)
-    {
-        case EVehicleCmd::MSP_CMD_READ_STATE:
-            ret = mspVehicle->handleStateRequest();
-            break;
-        case EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS:
-            ret = EResult::MSP_SUCCESS;
-            break;
-        case EVehicleCmd::MSP_CMD_MISSION_START:
-            ret = mspVehicle->runWaypointMission();
-            break;
-        case EVehicleCmd::MSP_CMD_MISSION_PAUSE:
-            ret = mspVehicle->pauseWaypointMission();
-            break;
-        case EVehicleCmd::MSP_CMD_MISSION_RESUME:
-            ret = mspVehicle->resumeWaypointMission();
-            break;
-        case EVehicleCmd::MSP_CMD_TAKE_PICTURE:
-           
-        default:
-            break;
+commandCallback(EVehicleCmd command, VehicleData vehicleData, void* userData, size_t len) {
+    MspMockVehicle* vehicle = static_cast<MspMockVehicle*>(vehicleData);
+    if (!vehicle) {
+        spdlog::error("mock vehicle command, no valid vehicle in vehicleData");
+        return EResult::MSP_FAILED;
     }
-    
-    return ret;
+    return vehicle->command(command, userData, len);
 }
 
 //-------------------------------------------------------------
@@ -38,11 +23,7 @@ cmdCallback(EVehicleCmd cmd, void* data, size_t len) {
 //-------------------------------------------------------------
 void 
 MspMockVehicle::initialize() {
-
-    mspVehicle = this;
-
-    // set callback for controller command data
-    MspController::getInstance()->vehicleCmd = &cmdCallback;
+    MspController::getInstance()->setVehicleCommandCallback(commandCallback, this);
 }
 
 EResult 
@@ -52,6 +33,7 @@ MspMockVehicle::handleStateRequest() {
     data.state |= EVehicleState::MSP_VHC_AVAILABLE | EVehicleState::MSP_VHC_READY;
     
     MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &data);
+    return EResult::MSP_SUCCESS;
 }
 
 //-------------------------------------------------------------
@@ -79,7 +61,6 @@ MspMockVehicle::resumeWaypointMission() {
     return EResult::MSP_SUCCESS;
 }
 
-
 //-------------------------------------------------------------
 // Mission running helper thread
 //-------------------------------------------------------------
@@ -88,8 +69,8 @@ MspMockVehicle::missionRun() {
     spdlog::info("thread running");
     sleep(2);
     
-    for (int i = 0; i < MspController::getInstance()->getMissionItemCount(); i++) {
-
+    for (size_t i = 0; i < MspController::getInstance()->getMissionItemCount(); i++) {
+    
         mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
         if (item) {
             spdlog::debug("way point reached");
@@ -104,6 +85,36 @@ MspMockVehicle::missionRun() {
 
             MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
         }
+        
         sleep(1);
     }
+}
+
+EResult 
+MspMockVehicle::command(EVehicleCmd cmd, void* data, size_t len) {
+  EResult ret = EResult::MSP_FAILED; 
+    switch (cmd)
+    {
+        case EVehicleCmd::MSP_CMD_READ_STATE:
+            ret = handleStateRequest();
+            break;
+        case EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS:
+            ret = EResult::MSP_SUCCESS;
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_START:
+            ret = runWaypointMission();
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_PAUSE:
+            ret = pauseWaypointMission();
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_RESUME:
+            ret = resumeWaypointMission();
+            break;
+        case EVehicleCmd::MSP_CMD_TAKE_PICTURE:
+           
+        default:
+            break;
+    }
+    
+    return ret;
 }

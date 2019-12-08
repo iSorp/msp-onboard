@@ -17,7 +17,7 @@ MspController::Init::entry() {
     MspSensors::getInstance()->initialize();
 
     // Read the current vehicle state -> result in vehicleNotification
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_READ_STATE, NULL, 0);
+    MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_READ_STATE);
 }
 
 void 

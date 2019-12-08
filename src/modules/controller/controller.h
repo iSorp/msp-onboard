@@ -9,25 +9,34 @@
 #include "mspvehicle.h"
 #include "mav_mavlink.h"
 
+
+typedef void* VehicleData;
+
+// Typ for callback function which the data actually sends to the receiver
+
+typedef EResult (*VehicleCommandCallback)(EVehicleCmd command, VehicleData vehicleData, void* userData, size_t len);
+typedef struct VehicleCommandCallbackHandler{
+    VehicleCommandCallback callback;
+    VehicleData vehicleData;
+}VehicleCommandCallbackHandler;
+
 class MspController {
     
-    using VehicleCmdCallback = EResult (*)(EVehicleCmd cmd, void* data, size_t len);
-    using VehicleData = void*;
-
+    
     struct State;
 
     public:
         static MspController *getInstance();
 
-        // Command function to the vehicle
-        VehicleCmdCallback vehicleCmd = ([] (EVehicleCmd cmd, void* data, size_t len) -> EResult{ return EResult::MSP_FAILED; });
-
-        // Vehicle callback function
-        void vehicleNotification(EVehicleNotification notification, VehicleData data);
-
+        // functions
         void initialize(Mavlink* mavlink);
         MAV_STATE getMavState();
         uint8_t getMavMode();
+
+        void setVehicleCommandCallback(VehicleCommandCallback callback, VehicleData vehicleData);
+        EResult setVehicleCommand(EVehicleCmd command);
+        EResult setVehicleCommand(EVehicleCmd command, void* data, size_t len);
+        void vehicleNotification(EVehicleNotification notification, VehicleData data);
         
         // user commands
         EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd);
@@ -40,7 +49,7 @@ class MspController {
 
         mavlink_mission_item_t* getMissionBehaviorItem(int key);
         std::vector<mavlink_mission_item_t>* getMissionItem(int key);
-        int getMissionItemCount();
+        size_t getMissionItemCount();
 
     protected:
         Mavlink* mavlink;
@@ -54,6 +63,7 @@ class MspController {
         {}
 
         static MspController *instance;
+        VehicleCommandCallbackHandler vCmdCbHandler;
         State* state = nullptr;
         
         std::map<int, std::vector<mavlink_mission_item_t>> missionItemMap;

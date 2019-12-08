@@ -11,6 +11,7 @@
 #include "controller.h"
 #include "sensors.h"
 
+
 #define MAVLKIN_UDP
 //#define MAVLKIN_DJI
 //#define DEBUG_SENSORS
@@ -21,46 +22,16 @@
     #include "dji_linux_helpers.hpp"
     #include "dji_mavlink.h"
 
-
-    static MspDjiVehicle mspDjiVehicle;
-    static LinuxSetup* linuxEnvironment = nullptr;
     static Vehicle* vehicle = nullptr;
 #endif
 
-static MspMockVehicle mspMockVehicle;
+static MspVehicle* mspVehicle = nullptr;
 static Mavlink* mavlink = nullptr;
 static std::thread mavThread;
-
-
-
-
-void waitForExit() {
-    // Poll stdin, exit on input
-    struct pollfd fds[1] = {};
-    fds[0].fd     = STDIN_FILENO;
-    fds[0].events = POLLIN;
-    int exit = 0;
-    while (exit == 0) {
-        #ifdef DEBUG_SENSORS
-        spdlog::debug("temperature: " + MspSensors::getInstance()->getSensorValue(1).value);
-        spdlog::debug("pressure: " + MspSensors::getInstance()->getSensorValue(2).value);
-        #endif
-    
-        if (poll(&fds[0], 1, 5000) > 0) {
-            if (fds[0].revents & POLLIN) {
-                char buf = ' ';
-                read(fds[0].fd, &buf, sizeof(buf));
-                if (buf == '1') {
-                    exit = true;
-                }
-            }
-        }
-    }
-}
-
+static void waitForExit();
 
 int main(int argc, char** argv) {
-	
+
     try 
     {   
         std::vector<spdlog::sink_ptr> sinks;
@@ -88,14 +59,12 @@ int main(int argc, char** argv) {
 
     #ifdef DJI_OSDK
     spdlog::info("DJI OSDK available");
-    const char* arg[3];
-    arg[0] = argv[0];
-    arg[1] = DJI_USER_CONFIG;
+    const char* arg[2] = {argv[0], DJI_USER_CONFIG};
 
     // Setup OSDK.
     try {
-        linuxEnvironment = new LinuxSetup(2, arg);
-        vehicle = linuxEnvironment->getVehicle();
+        LinuxSetup environment(2, arg);
+        vehicle = environment.getVehicle();
     }
     catch (std::exception& e) {
         spdlog::error(e.what());
@@ -108,26 +77,27 @@ int main(int argc, char** argv) {
         // Setup mobile communication
         #ifdef MAVLKIN_UDP
         mavlink = new MavlinkUDP(5001, 5000);
-        mspDjiVehicle.initialize(vehicle, linuxEnvironment, mavlink);
         #endif
 
         #ifdef MAVLKIN_DJI
         mavlink = new MavlinkDJI();
-        mspDjiVehicle.initialize(vehicle, linuxEnvironment, mavlink);
         #endif
+
+        mspVehicle = new MspDjiVehicle(vehicle, mavlink);
     }
     else{
         spdlog::warn("Vehicle not initialized, start simulation mode");
-        mavlink = new MavlinkUDP(5001, 5000);  
-        mspMockVehicle.initialize();
+        mavlink     = new MavlinkUDP(5001, 5000);  
+        mspVehicle  = new MspMockVehicle();
     }
     #else
         spdlog::warn("start simulation mode");
-        mavlink = new MavlinkUDP(5001, 5000);
-        mspMockVehicle.initialize();
+        mavlink     = new MavlinkUDP(5001, 5000);
+        mspVehicle  = new MspMockVehicle();
     #endif
 
     // Initialize the controller
+    mspVehicle->initialize();
     MspController::getInstance()->initialize(mavlink);
 
     // Start mavlink connection
@@ -141,24 +111,35 @@ int main(int argc, char** argv) {
         mavThread.join();
     }
 
-    spdlog::info("exit app msp-onboard");
+    delete mavlink;
+    delete mspVehicle;
+
+    spdlog::info("exit msp-onboard");
     return 0;
 }
 
-// dji mavlink test
-//setupMSDKComm(NULL, NULL, mavlinkDJI);
-//uint8_t heartBeat[17] = {0xfe, 0x09, 00, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x08, 0x00, 0x00, 0x03, 0xf4, 0x5a };
-//mavlinkDJI->setBuffer(heartBeat, 17);
 
-
-/*
-tests
-    Mavlink* mavlink = mavlinkUDP;
-    mavlink_message_t msg;
-    mavlink_msg_command_ack_pack(mavlink->get_system_id(), mavlink->get_component_id(), &msg, MAV_CMD_MISSION_START, 0);
-    mavlink->queueSendMessage(msg, MAVLINK_MSG_ID_COMMAND_INT_LEN);
-    mavlink->queueSendMessage(msg, 1);
-    mavlink_msg_command_ack_pack(111, mavlink->get_component_id(), &msg, MAV_CMD_MISSION_START, 0);
-    mavlink->queueSendMessage(msg, MAVLINK_MSG_ID_COMMAND_INT_LEN);
-
-*/
+static void 
+waitForExit() {
+    // Poll stdin, exit on input
+    struct pollfd fds[1] = {};
+    fds[0].fd     = STDIN_FILENO;
+    fds[0].events = POLLIN;
+    int exit = 0;
+    while (exit == 0) {
+        #ifdef DEBUG_SENSORS
+        spdlog::debug("temperature: " + MspSensors::getInstance()->getSensorValue(1).value);
+        spdlog::debug("pressure: " + MspSensors::getInstance()->getSensorValue(2).value);
+        #endif
+    
+        if (poll(&fds[0], 1, 5000) > 0) {
+            if (fds[0].revents & POLLIN) {
+                char buf = ' ';
+                read(fds[0].fd, &buf, sizeof(buf));
+                if (buf == '1') {
+                    exit = true;
+                }
+            }
+        }
+    }
+}

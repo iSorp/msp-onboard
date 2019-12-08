@@ -11,17 +11,21 @@
 #include "mav_mission.h"
 
 
+// Typ for callback function which the data actually sends to the receiver
+typedef void (*SendDataCallback)(uint8_t* data, uint8_t len, void* userData);
+
+typedef struct DataCallbackHandler{
+    SendDataCallback callback;
+    void* userData;
+}DataCallbackHandler;
+
 class MavlinkDJI : public Mavlink {
-
-    // Typ for callback function which the data actually sends to the receiver
-    using SendDataCallback = void (*)(uint8_t* data, uint8_t len);
-
     public: 
-        MavlinkDJI() { }
+        MavlinkDJI() {}
         
         ~MavlinkDJI() {}
 
-        SendDataCallback sendDataCallback = nullptr; 
+        void setSendDataCallback(SendDataCallback callback, void* userData);
 
         void setBuffer(uint8_t* data, size_t len);
         void beginSend() override { }
@@ -35,4 +39,5 @@ class MavlinkDJI : public Mavlink {
     private:
         uint8_t* buffer;
         int bufferLength;
+        DataCallbackHandler sendDataCallbackHandler;
 };

@@ -1,15 +1,66 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <mutex>
 
 #include "json.hpp"
 #include "helper.h"
 #include "controller.h"
 #include "sensors.h"
 
-static void
-writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures);
 
+std::mutex notify_mutex;
+
+//-------------------------------------------------------------
+// Static funcitions
+//-------------------------------------------------------------
+static void
+writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
+
+    std::time_t t = std::time(0);
+    std::tm* now = std::localtime(&t);
+    std::stringstream dstream;
+    // 2009-06-15T13:45:30 
+    dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
+        << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
+
+    nlohmann::json j;
+    nlohmann::json sensor_array = nlohmann::json::array();
+
+    // Sensor values: value is always a string
+    for (size_t i = 0; i < sensors.size(); i++) {
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"id", sensors[i].id},
+            {"value", sensors[i].value},
+            {"mime", "text/plain" },
+        });
+    }
+
+    // picture id
+    for (size_t i = 0; i < pictures.size(); i++) {
+        std::string strIndex = std::to_string(i);
+        sensor_array.push_back({
+            {"value", pictures[i] },
+            {"mime", "image/png" },
+        });
+    }
+
+    j["sensors"] = sensor_array;
+    
+    j["x"] = wpdata->longitude;
+    j["y"] = wpdata->latitude;
+    j["z"] = wpdata->altitude;
+    j["date"] = dstream.str();
+    std::string file_path;
+    file_path.append(WP_EXPORT_PATH);
+    file_path.append("/wp");
+    file_path.append(std::to_string(wpdata->index));
+    file_path.append(".json");
+
+    std::ofstream ofs(file_path);
+    ofs << std::setw(4) << j << std::endl;
+}
 
 //-------------------------------------------------------------
 // Class Mission 
@@ -51,15 +102,16 @@ MspController::Mission::missionStart() {
 
     spdlog::info("MspController::Mission::missionStart");
     EResult ret = EResult::MSP_FAILED;
+    
     // Upload mission data
-    ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS, NULL, 0);
+    ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS);
     if (ret != EResult::MSP_SUCCESS){
         context->setState(&context->stateIdle);
         return ret;
     }
 
     // Start mission
-    ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_START, NULL, 0);
+    ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_START);
     if (ret != EResult::MSP_SUCCESS){
         context->setState(&context->stateIdle);
         return ret;
@@ -74,10 +126,10 @@ MspController::Mission::missionPauseContinue(bool pause) {
     EResult ret = EResult::MSP_FAILED;
 
     if (pause) {
-        ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
+        ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_PAUSE);
     }
     else {
-        ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
+        ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_RESUME);
     }    
 
     return ret;
@@ -87,14 +139,18 @@ EResult
 MspController::Mission::missionStop() {
     spdlog::info("MspController::Mission::missionStop");
     EResult ret = EResult::MSP_FAILED;
-    ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_STOP, NULL, 0);
+    ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_STOP);
 
     return ret;
 }
 
 void 
 MspController::Mission::vehicleNotification(EVehicleNotification notification, VehicleData data) {
-    spdlog::info("MspController::Mission::vehicleNotification(" + std::to_string(notification) + ")");
+
+    // only one vehicle callback call is permitted
+    std::lock_guard<std::mutex> guard(notify_mutex);
+
+    spdlog::debug("MspController::Mission::vehicleNotification(" + std::to_string(notification) + ")");
 
     switch (notification)
     {
@@ -112,42 +168,50 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification, V
 //-------------------------------------------------------------
 void 
 MspController::Mission::handleWpReached(VehicleData data) {
-    // Pause mission
     EResult ret = EResult::MSP_FAILED;
-    MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_PAUSE, NULL, 0);
 
     // Handle wpreached data
-    waypointReachedData_t* wpdata = static_cast<waypointReachedData_t*>(data);     
+    waypointReachedData_t* wpdata = static_cast<waypointReachedData_t*>(data);  
     if (wpdata) {
+        spdlog::debug("MspController::Mission::handleWpReached(" + std::to_string(wpdata->index) + ")");
+        
+        // get current BehaviorItem and execute assigned waypoint actions
+        mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(wpdata->index);
+        if (item) {
 
-        // Send mission item reached mavlink messsage
-        sendMissionItemReached(wpdata->index);
-        executeAction(wpdata);
-    }
-
-    // TODO
-    bool nextWPavailable = true;
-    bool optionOrigin = false;
-
-    // check for next WP
-    if (nextWPavailable) {
-        // resume mission
-        ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_MISSION_RESUME, NULL, 0);
-        if (ret != EResult::MSP_SUCCESS){
-            context->setState(&context->stateIdle);
-            return;
-        }
-    }
-    else {
-        // if option to origin -> execute
-        if (optionOrigin){
-            ret = MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
-            if (ret != EResult::MSP_SUCCESS){
-                context->setState(&context->stateIdle);
-                return;
+            // check for autocontinue 
+            // false: pause mission -> resume mission after actions completed
+            // true: execute waypoint actions while mission continues
+            if(!item->autocontinue){
+                // Pause mission
+                spdlog::debug("MspController::Mission::handleWpReached, mission pause");
+                MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_PAUSE);
             }
-        } else{
-            // otherwise hower and set idle state
+
+            // Send mission item reached mavlink messsage
+            sendMissionItemReached(wpdata->index);
+
+            // Execute waypoint action and stor data to json file
+            executeAction(wpdata);
+
+            if (wpdata->index + 1 < MspController::getInstance()->getMissionItemCount()) {
+                // resume mission
+                ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_RESUME);
+                if (ret != EResult::MSP_SUCCESS){
+                    spdlog::debug("MspController::Mission::handleWpReached, mission resume");
+                    context->setState(&context->stateIdle);
+                    return;
+                }
+            }
+            else {
+                // goto origin if the max number of waypoints is reached
+                MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
+                context->setState(&context->stateIdle);
+            }
+        }
+        else {
+            // goto origin if no mission item for the current waypoint is found
+            MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
             context->setState(&context->stateIdle);
         }
     }
@@ -156,25 +220,29 @@ MspController::Mission::handleWpReached(VehicleData data) {
 void 
 MspController::Mission::executeAction(waypointReachedData_t* wpdata) {
     
-    // Export position and sensor/picture data
     std::vector<mavlink_mission_item_t>* items = MspController::getInstance()->getMissionItem(wpdata->index);
     if (items) {
         std::vector<SensorValue> sensors;
         std::vector<std::string> pictures;
 
+        // execute all waypoint actions
         for (size_t i = 0; i < items->size(); i++) {
             mavlink_mission_item_t item = (*items)[i];
             int id = (int)item.param1;
-    sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
+   
             switch (item.command)
             {
             case MAV_CMD_USER_2:
+                // read sensor values 
                 sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
                 break;
             case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
-                MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_TAKE_PICTURE, &item, 0);
+
+                // take a picture (SDCard filesystem can not be accessed within the OSDK context, 
+                // so the assigement picture-waypoint is only in the MSDK possible (media manager))
+                MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_TAKE_PICTURE, &item, 0);
+                pictures.push_back(std::to_string(id));
                 break;
-            
             default:
                 break;
             }
@@ -198,62 +266,13 @@ void
 MspController::Mission::validateMissionItems() {
     
     // TODO validate coordinates (GEO fence) 
-    for (int i = 0; i < MspController::getInstance()->getMissionItemCount(); i++)
+    // Currently done by DJI vehicle itselfe!!!
+    /*for (int i = 0; i < MspController::getInstance()->getMissionItemCount(); i++)
     {
         mavlink_mission_item_t* item = MspController::getInstance()->getMissionBehaviorItem(i);
-    }
+    }*/
 
-    if (false) {
+    /*if (false) {
         context->setState(&context->stateIdle);
-    }
+    }*/
 }
-
-
-static void
-writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
-
-    std::time_t t = std::time(0);
-    std::tm* now = std::localtime(&t);
-    std::stringstream dstream;
-    // 2009-06-15T13:45:30 
-    dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
-        << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
-
-    nlohmann::json j;
-    nlohmann::json sensor_array = nlohmann::json::array();
-
-    // Sensor values: e.g i2c sensors
-    for (size_t i = 0; i < sensors.size(); i++) {
-        std::string strIndex = std::to_string(i);
-        sensor_array.push_back({
-            {"id", sensors[i].id},
-            {"value", sensors[i].value},
-            {"mime", "text/plain" },
-        });
-    }
-
-    // pictures paths
-    for (size_t i = 0; i < pictures.size(); i++) {
-        std::string strIndex = std::to_string(i);
-        sensor_array.push_back({
-            {"value", pictures[i] },
-            {"mime", "image/png" },
-        });
-    }
-
-    j["sensors"] = sensor_array;
-    
-    j["x"] = wpdata->longitude;
-    j["y"] = wpdata->latitude;
-    j["z"] = wpdata->altitude;
-    j["date"] = dstream.str();
-    std::string file_path;
-    file_path.append(WP_EXPORT_PATH);
-    file_path.append("/wp");
-    file_path.append(std::to_string(wpdata->index));
-    file_path.append(".json");
-
-    std::ofstream ofs(file_path);
-    ofs << std::setw(4) << j << std::endl;
-}
-

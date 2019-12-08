@@ -38,12 +38,11 @@ enum EResult {
     MSP_PROGRESS
 };
 
-
 enum EVehicleState {
     MSP_VHC_AVAILABLE = 1,
     MSP_VHC_READY     = 2,
+    MSP_VHC_MISSION   = 3,
 };
-
 
 struct vehicleStateData_t {        
     uint8_t state;      // bit mask for EVehicleState

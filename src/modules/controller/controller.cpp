@@ -21,9 +21,24 @@ MspController::initialize(Mavlink* mavlink) {
     setState(&stateInit);
 }
 
+void 
+MspController::setVehicleCommandCallback(VehicleCommandCallback callback, VehicleData vehicleData) {
+    vCmdCbHandler.callback = callback;
+    vCmdCbHandler.vehicleData = vehicleData;
+}
+
+EResult 
+MspController::setVehicleCommand(EVehicleCmd command) {
+    return setVehicleCommand(command, NULL, 0);
+}
+
+EResult 
+MspController::setVehicleCommand(EVehicleCmd command, void* data, size_t len) {
+    return vCmdCbHandler.callback(command, vCmdCbHandler.vehicleData, data, len);
+}
+
 MAV_STATE 
 MspController::getMavState() {
-
     if (state == nullptr) {
         return MAV_STATE::MAV_STATE_UNINIT;
     } else if (typeid(*state) == typeid(MspController::Init)){
@@ -36,6 +51,7 @@ MspController::getMavState() {
 uint8_t 
 MspController::getMavMode() {
 
+    // TODO check and analyse DJI state machine and adopt it to mavlink
     uint8_t mode = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
 
     const uint8_t autoMode = MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -58,7 +74,6 @@ MspController::getMavMode() {
             mode |= autoMode;
         }
     }
-
     return mode;
 }
 
@@ -97,10 +112,10 @@ MspController::vehicleNotification(EVehicleNotification notification, VehicleDat
 mavlink_mission_item_t* 
 MspController::getMissionBehaviorItem(int key) {
     if (missionItemMap.count(key) > 0) {
-        std::vector<mavlink_mission_item_t> items = missionItemMap[key];
-        for (uint8_t i = 0; i < items.size(); i++) {
-            if (items[i].command == MAV_CMD_USER_1) {
-                return &items[i];
+        std::vector<mavlink_mission_item_t>* items = &missionItemMap[key];
+        for (uint8_t i = 0; i < items->size(); i++) {
+            if (items->at(i).command == MAV_CMD_USER_1) {
+                return &items->at(i);
             }
         }
     } 
@@ -114,7 +129,7 @@ MspController::getMissionItem(int key) {
     }
     return NULL;
 } 
-int 
+size_t 
 MspController::getMissionItemCount(){
     return missionItemMap.size();
 }

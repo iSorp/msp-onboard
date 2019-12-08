@@ -107,9 +107,12 @@ MavlinkMissionManager::MissionDownloadService::handleMissionItem(const mavlink_m
 	mavlink_mission_item_t wp;
 	mavlink_msg_mission_item_decode(msg, &wp);
 
-    // -> Save the mission item <-
-    if (wp.x != lastRcvItem.x || wp.y != lastRcvItem.y || wp.z != lastRcvItem.z) {
-        ++wpIndex;
+    // Store the mission item
+    // mission items with the same coordinates define actions, only the first item is used as waypoint
+    if (MspController::getInstance()->getMissionItemCount() > 0) {
+        if (wp.x != lastRcvItem.x || wp.y != lastRcvItem.y || wp.z != lastRcvItem.z) {
+            ++wpIndex;
+        }
     }
 
     MspController::getInstance()->missionAddItem(wpIndex, wp);
@@ -130,7 +133,7 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::entry() {
     context->transferSysId = 0;
     context->transferCompId = 0;
     context->repeatCounter = 0;
-    context->lastRcvItem = {};
+    context->lastRcvItem = {};  
 }
 
 void

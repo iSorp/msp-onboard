@@ -1,10 +1,10 @@
 set (dji_src 
     dji_linux_environment.cpp
     dji_linux_helpers.cpp
+    dji_mspvehicle.cpp
+    dji_mission.cpp
     dji_mavlink.cpp
     dji_mobile_interface.cpp
-    dji_mission_interface.cpp
-    dji_mspvehicle.cpp
     )
 
 

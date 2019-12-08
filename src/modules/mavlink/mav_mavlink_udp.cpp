@@ -67,7 +67,7 @@ MavlinkUDP::init(){
 		exit(EXIT_FAILURE);
     }
 
-    spdlog::info("MavlinkUDP::init, udp sockts initialized, start listenering for remote connection");
+    spdlog::info("MavlinkUDP::init, udp socket initialized, start listening for remote connection");
 }
 
 void

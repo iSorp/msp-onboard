@@ -7,13 +7,13 @@ MspController::Command::cmdExecute(uint16_t command, mavlink_command_long_t cmd)
     switch (command)
     {
     case MAV_CMD_NAV_RETURN_TO_LAUNCH:
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN, NULL, 0);
+        MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
         res = EResult::MSP_PROGRESS;
     case MAV_CMD_NAV_TAKEOFF:
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_TAKEOFF, NULL, 0);
+        MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_TAKEOFF);
         res = EResult::MSP_PROGRESS;
         case MAV_CMD_NAV_LAND:
-        MspController::getInstance()->vehicleCmd(EVehicleCmd::MSP_CMD_LAND, NULL, 0);
+        MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_LAND);
         res = EResult::MSP_PROGRESS;
     default:
         res = EResult::MSP_INVALID;
