@@ -23,11 +23,10 @@ MspController::Init::entry() {
 void 
 MspController::Init::vehicleNotification(EVehicleNotification notification, VehicleData data) {
     if (notification == EVehicleNotification::MSP_VHC_STATE) {
-        vehicleStateData_t* stateData = (vehicleStateData_t*)data;
+        VehicleInfoData* vehicleInfo = (VehicleInfoData*)data;
 
-        bool available = stateData->state & EVehicleState::MSP_VHC_AVAILABLE;
-        if (available)
-        {
+        bool available = vehicleInfo->state & EVehicleState::MSP_VHC_AVAILABLE;
+        if (available) {
             context->setState(&context->stateIdle);
         }
         else {

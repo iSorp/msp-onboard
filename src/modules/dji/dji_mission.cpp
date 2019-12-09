@@ -38,7 +38,7 @@ void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData u
 
         // Current waypoint data
         ACK::WayPointReachedData wpReachedData = recvFrame.recvData.wayPointReachedData;
-        waypointReachedData_t wpdata;
+        WaypointReachedData wpdata;
         wpdata.index = wpReachedData.waypoint_index;
 
         // Global position retrieved via subscription
@@ -51,12 +51,13 @@ void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData u
         MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata); 
     }
 }
+
 void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
  
-    MspDjiVehicle* mspVehicle = static_cast<MspDjiVehicle*>(userData);
+    /*MspDjiVehicle* mspVehicle = static_cast<MspDjiVehicle*>(userData);
     if (mspVehicle){
         mspVehicle->status = recvFrame.recvData.wayPointStatusPushData.current_status;
-    }
+    }*/
 }
 
 void missionPauseCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
@@ -195,7 +196,6 @@ MspDjiVehicle::takePicture(void* data) {
     return EResult::MSP_SUCCESS;
 }
 
-
 //-------------------------------------------------------------
 // static helpers
 //-------------------------------------------------------------
@@ -220,8 +220,7 @@ setGimbalAngle(Vehicle* vehicle, GimbalContainer* gimbal) {
 }
 
 static void
-setWaypointDefaults(WayPointSettings* wp)
-{
+setWaypointDefaults(WayPointSettings* wp) {
     wp->damping         = 0;
     wp->yaw             = 0;
     wp->gimbalPitch     = 0;
@@ -238,8 +237,7 @@ setWaypointDefaults(WayPointSettings* wp)
 }
 
 static void
-setWaypointInitDefaults(WayPointInitSettings* fdata)
-{
+setWaypointInitDefaults(WayPointInitSettings* fdata) {
     fdata->maxVelocity    = 10;
     fdata->idleVelocity   = 5;
     fdata->finishAction   = 0;

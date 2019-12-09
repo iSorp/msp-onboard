@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
     }
     spdlog::info("start app msp-onboard");
 
+    bool simulation;
     #ifdef DJI_OSDK
     spdlog::info("DJI OSDK available");
     const char* arg[2] = {argv[0], DJI_USER_CONFIG};
@@ -84,21 +85,24 @@ int main(int argc, char** argv) {
         #endif
 
         mspVehicle = new MspDjiVehicle(vehicle, mavlink);
+        simulation = false;
     }
     else{
         spdlog::warn("Vehicle not initialized, start simulation mode");
         mavlink     = new MavlinkUDP(5001, 5000);  
         mspVehicle  = new MspMockVehicle();
+        simulation  = true;
     }
     #else
         spdlog::warn("start simulation mode");
         mavlink     = new MavlinkUDP(5001, 5000);
         mspVehicle  = new MspMockVehicle();
+        simulation  = true;
     #endif
 
     // Initialize the controller
     mspVehicle->initialize();
-    MspController::getInstance()->initialize(mavlink);
+    MspController::getInstance()->initialize(mavlink, simulation);
 
     // Start mavlink connection
     mavThread = mavlink->start();

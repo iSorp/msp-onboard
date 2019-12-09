@@ -39,18 +39,18 @@ enum EResult {
 };
 
 enum EVehicleState {
-    MSP_VHC_AVAILABLE = 1,
-    MSP_VHC_READY     = 2,
-    MSP_VHC_MISSION   = 3,
-};
+    MSP_VHC_AVAILABLE,
+    MSP_VHC_SIMULATION
+}
 
-struct vehicleStateData_t {        
-    uint8_t state;      // bit mask for EVehicleState
-};
+typedef struct VehicleInfoData {        
+    EVehicleState state;
+    uint8_t mode;      // bit mask for MAV_MODE_FLAG
+}VehicleInfoData;
 
-struct waypointReachedData_t {        
+typedef struct WaypointReachedData {        
     u_int16_t index;
     float longitude;    // x /*!< unit: rad */
     float latitude;     // y /*!< unit: rad */     
     float altitude;     // z /*!< WGS 84 reference ellipsoid */
-};
+} WaypointReachedData;

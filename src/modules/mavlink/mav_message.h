@@ -18,7 +18,7 @@ class MavlinkMessageManager : public MavlinkServiceManager
         void handleMessages_heartbeat(const mavlink_message_t *msg);
         void sendHeartbeat();
 
-        uint64_t heardBeatSendTime;
+        uint64_t heartbeatSendTime;
 };
 
 

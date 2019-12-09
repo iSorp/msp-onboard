@@ -1,7 +1,6 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include <mutex>
 
 #include "json.hpp"
 #include "helper.h"
@@ -9,13 +8,11 @@
 #include "sensors.h"
 
 
-std::mutex notify_mutex;
-
 //-------------------------------------------------------------
 // Static funcitions
 //-------------------------------------------------------------
 static void
-writeWpResult(waypointReachedData_t* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
+writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
 
     std::time_t t = std::time(0);
     std::tm* now = std::localtime(&t);
@@ -147,9 +144,6 @@ MspController::Mission::missionStop() {
 void 
 MspController::Mission::vehicleNotification(EVehicleNotification notification, VehicleData data) {
 
-    // only one vehicle callback call is permitted
-    std::lock_guard<std::mutex> guard(notify_mutex);
-
     spdlog::debug("MspController::Mission::vehicleNotification(" + std::to_string(notification) + ")");
 
     switch (notification)
@@ -171,7 +165,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
     EResult ret = EResult::MSP_FAILED;
 
     // Handle wpreached data
-    waypointReachedData_t* wpdata = static_cast<waypointReachedData_t*>(data);  
+    WaypointReachedData* wpdata = static_cast<WaypointReachedData*>(data);  
     if (wpdata) {
         spdlog::debug("MspController::Mission::handleWpReached(" + std::to_string(wpdata->index) + ")");
         
@@ -218,7 +212,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
 }
 
 void 
-MspController::Mission::executeAction(waypointReachedData_t* wpdata) {
+MspController::Mission::executeAction(WaypointReachedData* wpdata) {
     
     std::vector<mavlink_mission_item_t>* items = MspController::getInstance()->getMissionItem(wpdata->index);
     if (items) {

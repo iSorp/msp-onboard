@@ -16,7 +16,6 @@ class MspDjiVehicle : public MspVehicle {
         ~MspDjiVehicle() override;
         
         EResult command(EVehicleCmd cmd, void* data, size_t len) override;
-        uint8_t status;
         void initialize() override;
 
     private:
@@ -24,10 +23,11 @@ class MspDjiVehicle : public MspVehicle {
         Vehicle* vehicle;
         MavlinkDJI* mavlink;
         std::vector<WayPointSettings> wp_list;
-        
+        uint8_t flightState;
+        uint8_t displayMode;
 
-        bool setUpSubscription(Vehicle* vehicle, int responseTimeout, int pkgIndex, int freq, std::vector<TopicName> topicList);
-        bool teardownSubscription(Vehicle* vehicle, const int pkgIndex, int responseTimeout);
+        bool setUpSubscription(int responseTimeout, int pkgIndex, int freq, std::vector<TopicName> topicList);
+        bool teardownSubscription(const int pkgIndex, int responseTimeout);
 
         void createWaypoints();
         EResult handleStateRequest();

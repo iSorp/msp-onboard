@@ -67,7 +67,8 @@ class MspController {
         State* state = nullptr;
         
         std::map<int, std::vector<mavlink_mission_item_t>> missionItemMap;
-        
+        VehicleInfoData vehicleInfo = {};
+
         // State functions 
         State* getState() {return state; };
         void setState(State *_state);
@@ -121,7 +122,7 @@ class MspController {
                 EResult missionStop();
                 EResult missionPauseContinue(bool pause);
                 void handleWpReached(VehicleData data);
-                void executeAction(waypointReachedData_t* wpdata);
+                void executeAction(WaypointReachedData* wpdata);
                 void sendMissionItemReached(int seq);
                 void validateMissionItems();
         };

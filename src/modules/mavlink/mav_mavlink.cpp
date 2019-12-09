@@ -149,10 +149,10 @@ Mavlink::run()
 }
 
 void Mavlink::runService() {
-    // handle timeouts and resets
-    for (auto &service : services) {
-        service->run();
-    }
+	// handle timeouts and resets
+	for (auto &service : services) {
+			service->run();
+	}
 }
 
 void

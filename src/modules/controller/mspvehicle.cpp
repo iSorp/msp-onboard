@@ -29,10 +29,10 @@ MspMockVehicle::initialize() {
 EResult 
 MspMockVehicle::handleStateRequest() {
 
-    vehicleStateData_t data = { };
-    data.state |= EVehicleState::MSP_VHC_AVAILABLE | EVehicleState::MSP_VHC_READY;
-    
-    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &data);
+    VehicleStateData vehicleInfo = { };
+    vehicleInfo.state = EVehicleState::MSP_VHC_SIMULATION;
+ 
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &vehicleInfo);
     return EResult::MSP_SUCCESS;
 }
 
@@ -76,7 +76,7 @@ MspMockVehicle::missionRun() {
             spdlog::debug("way point reached");
 
             // Current waypoint data
-            waypointReachedData_t wpdata;
+            WaypointReachedData wpdata;
             wpdata.index = i;
 
             wpdata.latitude  = item->y;

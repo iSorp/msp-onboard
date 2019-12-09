@@ -3,9 +3,6 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
-#include <chrono>
-#include <thread>
-#include <future> 
 
 #include "mav_ftp.h"
 #include "mav_mavlink.h"

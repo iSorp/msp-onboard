@@ -13,7 +13,7 @@ void
 MavlinkMessageManager::run() {
 
     // send heartbeat interval
-    if ((microsSinceEpoch() - mavlink->getSendTime()) > MAV_HEARTBEAT_INTERVAL) {
+    if ((microsSinceEpoch() - heartbeatSendTime) > MAV_HEARTBEAT_INTERVAL) {
         sendHeartbeat();
     }
 }
@@ -53,7 +53,7 @@ MavlinkMessageManager::sendHeartbeat()
         0, 
         MspController::getInstance()->getMavState());
 
-        heardBeatSendTime = microsSinceEpoch();
+        heartbeatSendTime = microsSinceEpoch();
 }
 
 
