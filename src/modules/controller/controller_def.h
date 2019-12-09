@@ -5,15 +5,15 @@ enum EVehicleNotification {
     MSP_VHC_WAY_POINT_REACHED,
     MSP_VHC_LANDED,
     MSP_VHC_TAKEOFF,
+    MSP_VHC_MISSION_PAUSED,
+    MSP_VHC_MISSION_RESUMED,
+    MSP_VHC_MISSION_STOPPED,
 };
 
 enum EVehicleCmd {
-    MSP_CMD_READ_STATE,
-
     MSP_CMD_RETURN_TO_ORIGIN,
     MSP_CMD_TAKEOFF,
     MSP_CMD_LAND,
-
 
     MSP_CMD_MISSION_START,
     MSP_CMD_MISSION_PAUSE,
@@ -39,9 +39,10 @@ enum EResult {
 };
 
 enum EVehicleState {
+    MSP_VHC_NOT_AVAILABLE = -1,
     MSP_VHC_AVAILABLE,
     MSP_VHC_SIMULATION
-}
+};
 
 typedef struct VehicleInfoData {        
     EVehicleState state;

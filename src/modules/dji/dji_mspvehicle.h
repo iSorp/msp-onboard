@@ -23,17 +23,15 @@ class MspDjiVehicle : public MspVehicle {
         Vehicle* vehicle;
         MavlinkDJI* mavlink;
         std::vector<WayPointSettings> wp_list;
-        uint8_t flightState;
-        uint8_t displayMode;
 
         bool setUpSubscription(int responseTimeout, int pkgIndex, int freq, std::vector<TopicName> topicList);
         bool teardownSubscription(const int pkgIndex, int responseTimeout);
 
         void createWaypoints();
-        EResult handleStateRequest();
         EResult uploadWaypoints();
         EResult runWaypointMission(); 
         EResult pauseWaypointMission();
         EResult resumeWaypointMission();
+        EResult stopWaypointMission();
         EResult takePicture(void* data);
 };

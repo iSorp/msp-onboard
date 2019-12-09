@@ -7,6 +7,7 @@
 
 static std::list<Mavlink*> instanceList;
 static std::mutex send_lock;
+static std::mutex result_mutex;
 
 //-------------------------------------------------------------
 // Mavlink helper interface
@@ -156,8 +157,7 @@ void Mavlink::runService() {
 }
 
 void
-Mavlink::handleMessages(mavlink_message_t *msg)
-{
+Mavlink::handleMessages(mavlink_message_t *msg) {
     for (auto &service : services) {
         service->handleMessages(msg);
     }

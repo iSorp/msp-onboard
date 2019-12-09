@@ -31,7 +31,8 @@ setGimbalAngle(Vehicle* vehicle, GimbalContainer* gimbal);
 //-------------------------------------------------------------
 // Callbacks
 //-------------------------------------------------------------
-void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+void 
+wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
  
     if (recvFrame.recvData.wayPointStatusPushData.current_status == WAYPOINT_REACHED) {
         spdlog::debug("way point reached");
@@ -52,7 +53,8 @@ void wayPointEventCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData u
     }
 }
 
-void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+void 
+wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
  
     /*MspDjiVehicle* mspVehicle = static_cast<MspDjiVehicle*>(userData);
     if (mspVehicle){
@@ -60,12 +62,22 @@ void wayPointCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userDa
     }*/
 }
 
-void missionPauseCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+void 
+missionPauseCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
     spdlog::debug("missionPauseCallback");
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_MISSION_PAUSED, NULL);
 }
 
-void missionResumeCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+void 
+missionResumeCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
     spdlog::debug("missionResumeCallback");
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_MISSION_RESUMED, NULL);
+}
+
+void 
+missionStoppedCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
+    spdlog::debug("missionStoppedCallback");
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_MISSION_STOPPED, NULL);
 }
 
 //-------------------------------------------------------------
@@ -129,13 +141,19 @@ MspDjiVehicle::runWaypointMission() {
 EResult
 MspDjiVehicle::pauseWaypointMission() {
     vehicle->missionManager->wpMission->pause(&missionPauseCallback, NULL);
-    return EResult::MSP_SUCCESS;   
+    return EResult::MSP_PROGRESS;   
 }
 
 EResult
 MspDjiVehicle::resumeWaypointMission() {
     vehicle->missionManager->wpMission->resume(&missionResumeCallback, NULL);
-    return EResult::MSP_SUCCESS;
+    return EResult::MSP_PROGRESS;
+}
+
+EResult
+MspDjiVehicle::stopWaypointMission() {
+    vehicle->missionManager->wpMission->stop(missionStoppedCallback, this);
+    return EResult::MSP_PROGRESS;
 }
 
 //-------------------------------------------------------------

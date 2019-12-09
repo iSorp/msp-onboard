@@ -67,31 +67,14 @@ MspController::Mission::entry() {
 
     // Ckeck if mission items are valid (coordinates, actions)
     validateMissionItems(); 
+    missionActive       = false;
+    userCommandPaused   = false;
 }
 
 void 
 MspController::Mission::exit() {
-    // if all WP are done, end mission
-    sendMissionItemReached(-1);
-}
-
-EResult 
-MspController::Mission::cmdExecute(uint16_t command, mavlink_command_long_t cmd){
-    EResult res = EResult::MSP_FAILED;
-    switch (command)
-    {
-    case MAV_CMD_MISSION_START:
-        res = missionStart();
-        break;
-    case MAV_CMD_DO_PAUSE_CONTINUE:
-        res = missionPauseContinue(cmd.param1 == 0);
-        break;
-    default:
-        spdlog::warn("MspController::Mission::cmdExecute, command not available");
-        res =  EResult::MSP_INVALID;
-        break;
-    }
-    return res;
+    missionActive       = false;
+    userCommandPaused   = false;
 }
 
 EResult 
@@ -114,31 +97,47 @@ MspController::Mission::missionStart() {
         return ret;
     }
 
+    missionActive = true;
     return ret;
 }
 
 EResult 
-MspController::Mission::missionPauseContinue(bool pause) {
-    spdlog::info("MspController::Mission::missionPauseContinue(" + std::to_string(pause) + ")");
+MspController::Mission::missionPauseContinue() {
+    spdlog::info("MspController::Mission::missionPauseContinue");
     EResult ret = EResult::MSP_FAILED;
 
-    if (pause) {
+    if (missionActive) {
+        userCommandPaused = true; // exit mission state if vehicle notifies paused
         ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_PAUSE);
     }
     else {
+        missionActive = true;
         ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_RESUME);
     }    
 
     return ret;
 }
 
+//------------------------------------------------------------- 
+// Command and notification interface
+//-------------------------------------------------------------
 EResult 
-MspController::Mission::missionStop() {
-    spdlog::info("MspController::Mission::missionStop");
-    EResult ret = EResult::MSP_FAILED;
-    ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_STOP);
-
-    return ret;
+MspController::Mission::setCommand(uint16_t command, mavlink_command_long_t cmd){
+    EResult res = EResult::MSP_FAILED;
+    switch (command)
+    {
+    case MAV_CMD_MISSION_START:
+        res = missionStart();
+        break;
+    case MAV_CMD_DO_PAUSE_CONTINUE:
+        res = missionPauseContinue();
+        break;
+    default:
+        spdlog::warn("MspController::Mission::setCommand, command not available");
+        res =  EResult::MSP_INVALID;
+        break;
+    }
+    return res;
 }
 
 void 
@@ -150,8 +149,20 @@ MspController::Mission::vehicleNotification(EVehicleNotification notification, V
     {
     case EVehicleNotification::MSP_VHC_WAY_POINT_REACHED:
         handleWpReached(data);
+        break;  
+    case EVehicleNotification::MSP_VHC_MISSION_STOPPED:
+        MspController::getInstance()->mavlink->setCmdResult(EResult::MSP_SUCCESS);
+        context->setState(&context->stateIdle);
         break;
-    
+    case EVehicleNotification::MSP_VHC_MISSION_PAUSED:
+        MspController::getInstance()->mavlink->setCmdResult(EResult::MSP_SUCCESS);
+        if (userCommandPaused) {
+            context->setState(&context->stateIdle);
+        }
+        break;
+    case EVehicleNotification::MSP_VHC_MISSION_RESUMED:
+        MspController::getInstance()->mavlink->setCmdResult(EResult::MSP_SUCCESS);
+        break;
     default:
         break;
     }
@@ -191,7 +202,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
             if (wpdata->index + 1 < MspController::getInstance()->getMissionItemCount()) {
                 // resume mission
                 ret = MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_MISSION_RESUME);
-                if (ret != EResult::MSP_SUCCESS){
+                if (ret != EResult::MSP_SUCCESS && ret != EResult::MSP_PROGRESS){
                     spdlog::debug("MspController::Mission::handleWpReached, mission resume");
                     context->setState(&context->stateIdle);
                     return;

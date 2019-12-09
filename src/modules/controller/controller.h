@@ -39,7 +39,7 @@ class MspController {
         void vehicleNotification(EVehicleNotification notification, VehicleData data);
         
         // user commands
-        EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd);
+        EResult setCommand(uint16_t command, mavlink_command_long_t cmd);
 
         bool missionIsActive();
 
@@ -80,7 +80,8 @@ class MspController {
 
                 MspController *context;
 
-                virtual EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd){
+                virtual void run() {};
+                virtual EResult setCommand(uint16_t command, mavlink_command_long_t cmd){
                     return EResult::MSP_FAILED;
                 }
 
@@ -103,7 +104,7 @@ class MspController {
             public:
                 Idle(MspController *context) : State(context) {};
                 void entry() override;
-                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
+                EResult setCommand(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
         class Mission : public State {
@@ -115,12 +116,14 @@ class MspController {
                 void entry() override;
                 void exit() override;
                 void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
-                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
+                EResult setCommand(uint16_t command, mavlink_command_long_t cmd) override;
 
             private:
+                bool missionActive;
+                bool userCommandPaused;
+
                 EResult missionStart();
-                EResult missionStop();
-                EResult missionPauseContinue(bool pause);
+                EResult missionPauseContinue();
                 void handleWpReached(VehicleData data);
                 void executeAction(WaypointReachedData* wpdata);
                 void sendMissionItemReached(int seq);
@@ -131,7 +134,7 @@ class MspController {
             public:
                 Command(MspController *context) : State(context) {};
                 void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
-                EResult cmdExecute(uint16_t command, mavlink_command_long_t cmd) override;
+                EResult setCommand(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
         Init stateInit;

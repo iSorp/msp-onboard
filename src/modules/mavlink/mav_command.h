@@ -1,9 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include "defines.h"
 #include "controller_def.h"
 #include "mav_service.h"
-
 
 struct Mavlink;
 
@@ -34,7 +34,8 @@ class MavlinkCommandManager : public MavlinkServiceManager
                 };
 
                 // Variables
-                volatile EResult cmdResult;
+                std::atomic<EResult> cmdResult;
+                
                 uint16_t currentCmd = 0;
                 int confirmation = 0;
                 int progress = 0;

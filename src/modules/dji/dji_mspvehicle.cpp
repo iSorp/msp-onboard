@@ -26,10 +26,42 @@ commandCallback(EVehicleCmd command, VehicleData vehicleData, void* userData, si
 }
 
 static void 
-vehicleStatusCallback(Vehicle* vehicle, RecvContainer recvFrame UserData userData){
+vehicleStateCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData){
 
-    flightState = vehicle->subscribe->getValue<TOPIC_STATUS_FLIGHT>();
-    displayMode = vehicle->subscribe->getValue<TOPIC_STATUS_DISPLAYMODE>();
+    Telemetry::TypeMap<TOPIC_STATUS_FLIGHT>::type flightState = vehicle->subscribe->getValue<TOPIC_STATUS_FLIGHT>();
+    Telemetry::TypeMap<TOPIC_STATUS_DISPLAYMODE>::type displayMode = vehicle->subscribe->getValue<TOPIC_STATUS_DISPLAYMODE>();
+
+    VehicleInfoData vehicleInfo = { };
+    if (vehicle && vehicle->getActivationStatus()) {
+
+        // Vehicle status
+        vehicleInfo.state = EVehicleState::MSP_VHC_AVAILABLE;
+
+        // DJI -> Mavlink Mode 
+        if (displayMode == VehicleStatus::FlightStatus::ON_GROUND 
+            || displayMode == VehicleStatus::FlightStatus::IN_AIR) {
+                vehicleInfo.mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+        }
+        
+        if (displayMode == VehicleStatus::DisplayMode::MODE_ATTITUDE 
+            || displayMode == VehicleStatus::DisplayMode::MODE_P_GPS 
+            || displayMode == VehicleStatus::DisplayMode::MODE_SEARCH_MODE 
+            || displayMode == VehicleStatus::DisplayMode::MODE_NAVI_SDK_CTRL
+            || displayMode == VehicleStatus::DisplayMode::MODE_HOTPOINT_MODE
+            || displayMode == VehicleStatus::DisplayMode::MODE_FORCE_AUTO_LANDING
+            || displayMode == VehicleStatus::DisplayMode::MODE_AUTO_TAKEOFF
+            || displayMode == VehicleStatus::DisplayMode::MODE_AUTO_LANDING
+            || displayMode == VehicleStatus::DisplayMode::MODE_FORCE_AUTO_LANDING) {
+                vehicleInfo.mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+                vehicleInfo.mode |= MAV_MODE_FLAG_AUTO_ENABLED;
+                vehicleInfo.mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+                vehicleInfo.mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+        }
+    }else {
+        vehicleInfo.state = EVehicleState::MSP_VHC_SIMULATION;
+    }
+
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &vehicleInfo);
 }
 
 //-------------------------------------------------------------
@@ -62,51 +94,11 @@ MspDjiVehicle::initialize() {
     vehicle->mobileDevice->setFromMSDKCallback(mobileCallback, mavlink);
 
     // set up data subscription, Topics with the same refresh rate belongs to the same package
-    setUpSubscription(vehicle, responseTimeout,  GPS_PACKAGE_INDEX, 10, { TOPIC_GPS_FUSED });
-    setUpSubscription(vehicle, responseTimeout,  STATUS_PACKAGE_INDEX, 100, { TOPIC_STATUS_FLIGHT, TOPIC_STATUS_DISPLAYMODE });
+    setUpSubscription(responseTimeout,  GPS_PACKAGE_INDEX, 10, { TOPIC_GPS_FUSED });
+    setUpSubscription(responseTimeout,  STATUS_PACKAGE_INDEX, 100, { TOPIC_STATUS_FLIGHT, TOPIC_STATUS_DISPLAYMODE });
 
     // callback registration for vehicle status
-    vehicle->subscribe->registerUserPackageUnpackCallback(STATUS_PACKAGE_INDEX, vehicleStatusCallback, this);
-}
-
-//-------------------------------------------------------------
-// Vehicle information
-//-------------------------------------------------------------
-EResult 
-MspDjiVehicle::handleStateRequest() {
-
-    VehicleInfoData vehicleInfo = { };
-    if (this->vehicle && this->vehicle->getActivationStatus()) {
-
-        // Vehicle status
-        vehicleInfo.state = EVehicleState::MSP_VHC_AVAILABLE;
-
-        // DJI -> Mavlink Mode 
-        if (this->displayMode == VehicleStatus::FlightStatus::ON_GROUND 
-            || this->displayMode == VehicleStatus::FlightStatus::IN_AIR) {
-                vehicleInfo.mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-        }
-        
-        if (this->displayMode == VehicleStatus::DisplayMode::MODE_ATTITUDE 
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_P_GPS 
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_SEARCH_MODE 
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_NAVI_SDK_CTRL
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_HOTPOINT_MODE
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_FORCE_AUTO_LANDING
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_AUTO_TAKEOFF
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_AUTO_LANDING
-            || this->displayMode == VehicleStatus::DisplayMode::MODE_FORCE_AUTO_LANDING) {
-                vehicleInfo.mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-                vehicleInfo.mode |= MAV_MODE_FLAG_AUTO_ENABLED;
-                vehicleInfo.mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-                vehicleInfo.mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-        }
-    }else {
-        vehicleInfo.state = EVehicleState::MSP_VHC_SIMULATION;
-    }
-
-    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &vehicleInfo);
-    return EResult::MSP_SUCCESS;
+    vehicle->subscribe->registerUserPackageUnpackCallback(STATUS_PACKAGE_INDEX, vehicleStateCallback, this);
 }
 
 //-------------------------------------------------------------
@@ -165,9 +157,6 @@ MspDjiVehicle::command(EVehicleCmd cmd, void* data, size_t len) {
     EResult ret = EResult::MSP_FAILED; 
     switch (cmd)
     {
-        case EVehicleCmd::MSP_CMD_READ_STATE:
-            ret = handleStateRequest();
-            break;
         case EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS:
             createWaypoints();
             ret = EResult::MSP_SUCCESS;
@@ -183,6 +172,9 @@ MspDjiVehicle::command(EVehicleCmd cmd, void* data, size_t len) {
             break;
         case EVehicleCmd::MSP_CMD_MISSION_RESUME:
             ret = resumeWaypointMission();
+            break;
+        case EVehicleCmd::MSP_CMD_MISSION_STOP:
+            ret = stopWaypointMission();
             break;
         case EVehicleCmd::MSP_CMD_TAKE_PICTURE:
             ret = takePicture(data);

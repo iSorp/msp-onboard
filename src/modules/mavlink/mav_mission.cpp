@@ -23,7 +23,7 @@ MavlinkMissionManager::handleMessages(const mavlink_message_t *msg)
             missionDownloadService.setState(&missionDownloadService.missionDownloadInit);
             break;
 
-        // deletes the current mission
+        // stops and deletes the current mission
         case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
             spdlog::info("MavlinkMissionManager::handleMessages, mission delete");
             missionDelete(msg);
@@ -146,6 +146,9 @@ MavlinkMissionManager::MissionDownloadService::MissionDownloadInit::handleMessag
             context->setState(&context->missionDownloadInit);
         }
         else {
+            // first delete current mission
+            MspController::getInstance()->missionDelete();
+
             // Start with mission download
             context->handleMissionCount(msg);
             context->handleMissionRequest(context->transferSysId, context->transferCompId, context->seq);

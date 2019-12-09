@@ -1,7 +1,7 @@
 #include <mutex>
 #include "controller.h"
 
-std::mutex notify_mutex;
+static std::mutex command_mutex;
 
 //-------------------------------------------------------------
 // Singleton Class MspController 
@@ -36,13 +36,9 @@ MspController::getMavState() {
 
 uint8_t 
 MspController::getMavMode() {
-
-    setVehicleCommand(EVehicleCmd::MSP_CMD_READ_STATE);
-
     if (vehicleInfo.state == EVehicleState::MSP_VHC_SIMULATION) {
         vehicleInfo.mode |= MAV_MODE_FLAG_HIL_ENABLED;
     }
-
     return vehicleInfo.mode;
 }
 
@@ -55,24 +51,32 @@ MspController::setState(State* _state) {
     state->entry();
 };
 
+void 
+MspController::setVehicleCommandCallback(VehicleCommandCallback callback, VehicleData vehicleData) {
+    vCmdCbHandler.callback = callback;
+    vCmdCbHandler.vehicleData = vehicleData;
+}
+
 //------------------------------------------------------------- 
 // Command and notification interface
 //-------------------------------------------------------------
-/*
-* Execute state command
-*/
+
 EResult
-MspController::cmdExecute(uint16_t command, mavlink_command_long_t cmd) {
-    return state->cmdExecute(command, cmd);
+MspController::setCommand(uint16_t command, mavlink_command_long_t cmd) {
+    // make sure only one vehicle notification call is handled
+    std::lock_guard<std::mutex> guard(command_mutex);
+    return state->setCommand(command, cmd);
 }
+
+
 /*
-* Notification from vehicle
+* Notification from vehicle is called by callback threads
 */
 void
 MspController::vehicleNotification(EVehicleNotification notification, VehicleData data) {
 
     // make sure only one vehicle notification call is handled
-    std::lock_guard<std::mutex> guard(notify_mutex);
+    std::lock_guard<std::mutex> guard(command_mutex);
 
     if (notification == EVehicleNotification::MSP_VHC_STATE){
         VehicleInfoData* vehicleInfo = (VehicleInfoData*)data;
@@ -81,20 +85,16 @@ MspController::vehicleNotification(EVehicleNotification notification, VehicleDat
     state->vehicleNotification(notification, data);
 }
 
-void 
-MspController::setVehicleCommandCallback(VehicleCommandCallback callback, VehicleData vehicleData) {
-    vCmdCbHandler.callback = callback;
-    vCmdCbHandler.vehicleData = vehicleData;
+EResult 
+MspController::setVehicleCommand(EVehicleCmd command, void* data, size_t len) {
+
+    EResult res = vCmdCbHandler.callback(command, vCmdCbHandler.vehicleData, data, len);
+    return res;
 }
 
 EResult 
 MspController::setVehicleCommand(EVehicleCmd command) {
     return setVehicleCommand(command, NULL, 0);
-}
-
-EResult 
-MspController::setVehicleCommand(EVehicleCmd command, void* data, size_t len) {
-    return vCmdCbHandler.callback(command, vCmdCbHandler.vehicleData, data, len);
 }
 
 //------------------------------------------------------------- 
@@ -137,7 +137,7 @@ MspController::missionIsActive() {
 
 EResult 
 MspController::missionDelete() {
-    if (!missionIsActive())
+  if (!missionIsActive())
     {
         missionItemMap.clear();
         return EResult::MSP_SUCCESS;

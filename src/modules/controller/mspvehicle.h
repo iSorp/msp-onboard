@@ -25,10 +25,12 @@ class MspMockVehicle : public MspVehicle {
 
     private:
         std::vector<mavlink_mission_item_t*> wp_list;
+        volatile bool exit;
+
         void missionRun();
 
-        EResult handleStateRequest();
         EResult runWaypointMission();
         EResult pauseWaypointMission();
         EResult resumeWaypointMission();
+        EResult stopWaypointMission();
 };

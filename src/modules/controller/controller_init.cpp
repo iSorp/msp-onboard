@@ -15,9 +15,6 @@ MspController::Init::entry() {
 
     // Initialize oboard-controller Sensors
     MspSensors::getInstance()->initialize();
-
-    // Read the current vehicle state -> result in vehicleNotification
-    MspController::getInstance()->setVehicleCommand(EVehicleCmd::MSP_CMD_READ_STATE);
 }
 
 void 
@@ -25,13 +22,13 @@ MspController::Init::vehicleNotification(EVehicleNotification notification, Vehi
     if (notification == EVehicleNotification::MSP_VHC_STATE) {
         VehicleInfoData* vehicleInfo = (VehicleInfoData*)data;
 
-        bool available = vehicleInfo->state & EVehicleState::MSP_VHC_AVAILABLE;
+        bool available = vehicleInfo->state >= EVehicleState::MSP_VHC_AVAILABLE;
         if (available) {
             context->setState(&context->stateIdle);
         }
         else {
             spdlog::critical("vehicle not in proper state");
-            exit();
+            std::exit(1);
         } 
     }
 }

@@ -28,7 +28,7 @@
 static MspVehicle* mspVehicle = nullptr;
 static Mavlink* mavlink = nullptr;
 static std::thread mavThread;
-static void waitForExit();
+static bool pollForExit();
 
 int main(int argc, char** argv) {
 
@@ -57,7 +57,6 @@ int main(int argc, char** argv) {
     }
     spdlog::info("start app msp-onboard");
 
-    bool simulation;
     #ifdef DJI_OSDK
     spdlog::info("DJI OSDK available");
     const char* arg[2] = {argv[0], DJI_USER_CONFIG};
@@ -85,31 +84,34 @@ int main(int argc, char** argv) {
         #endif
 
         mspVehicle = new MspDjiVehicle(vehicle, mavlink);
-        simulation = false;
     }
     else{
         spdlog::warn("Vehicle not initialized, start simulation mode");
         mavlink     = new MavlinkUDP(5001, 5000);  
         mspVehicle  = new MspMockVehicle();
-        simulation  = true;
     }
     #else
         spdlog::warn("start simulation mode");
         mavlink     = new MavlinkUDP(5001, 5000);
         mspVehicle  = new MspMockVehicle();
-        simulation  = true;
     #endif
 
     // Initialize the controller
+    MspController::getInstance()->initialize(mavlink);
     mspVehicle->initialize();
-    MspController::getInstance()->initialize(mavlink, simulation);
 
     // Start mavlink connection
     mavThread = mavlink->start();
 
     // exit on input '1'
-    waitForExit();
-   
+    while (!pollForExit()) {
+
+        #ifdef DEBUG_SENSORS
+        spdlog::debug("temperature: " + MspSensors::getInstance()->getSensorValue(1).value);
+        spdlog::debug("pressure: " + MspSensors::getInstance()->getSensorValue(2).value);
+        #endif
+    }
+
     if (mavlink){
         mavlink->stop();
         mavThread.join();
@@ -123,27 +125,22 @@ int main(int argc, char** argv) {
 }
 
 
-static void 
-waitForExit() {
+static bool 
+pollForExit() {
     // Poll stdin, exit on input
     struct pollfd fds[1] = {};
     fds[0].fd     = STDIN_FILENO;
     fds[0].events = POLLIN;
-    int exit = 0;
-    while (exit == 0) {
-        #ifdef DEBUG_SENSORS
-        spdlog::debug("temperature: " + MspSensors::getInstance()->getSensorValue(1).value);
-        spdlog::debug("pressure: " + MspSensors::getInstance()->getSensorValue(2).value);
-        #endif
+    bool exit = false;
     
-        if (poll(&fds[0], 1, 5000) > 0) {
-            if (fds[0].revents & POLLIN) {
-                char buf = ' ';
-                read(fds[0].fd, &buf, sizeof(buf));
-                if (buf == '1') {
-                    exit = true;
-                }
+    if (poll(&fds[0], 1, 5000) > 0) {
+        if (fds[0].revents & POLLIN) {
+            char buf = ' ';
+            read(fds[0].fd, &buf, sizeof(buf));
+            if (buf == '1') {
+                exit = true;
             }
         }
     }
+    return exit;
 }
