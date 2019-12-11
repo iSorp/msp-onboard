@@ -1,3 +1,5 @@
+# *  @Copyright (c) 2019 Simon Waelti
+
 set (controller_src 
     controller.cpp
     controller_init.cpp

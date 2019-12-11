@@ -1,3 +1,5 @@
+# *  @Copyright (c) 2019 Simon Waelti
+
 set (dji_src 
     dji_linux_environment.cpp
     dji_linux_helpers.cpp

@@ -1,3 +1,11 @@
+/**
+    Implementation of the Idle state class.
+    @file controller_idle.cpp
+    @version 1.0
+    @author Simon Waelti
+    @version 1.0 1.12.2019
+*/
+
 #include "controller.h"
 
 //-------------------------------------------------------------

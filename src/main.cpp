@@ -1,3 +1,22 @@
+/**
+    @file main.cpp
+    @version 1.0
+    @author Simon Waelti
+    @version 1.0 1.12.2019
+
+    @brief 
+    This application is multithreaded and implements following main threads:
+    1. Main thread: Used for initialization
+    2. (either a or b)
+        a. Mavlink UDP: Event loop for polling a udp socket. Handles incoming and outgoing mavlink packages. 
+        b. Mavlink Airlink: Event loop for polling a byte buffer which is provided from DJI. 
+            Handles incomming and outgoing mavlink packages.
+    3. DJI OSDK threads
+        a. Serial Read 
+        b. USB Read
+        c. Callback
+*/
+
 #include <exception>
 #include <iostream>
 
@@ -13,7 +32,6 @@
 
 
 #define MAVLKIN_UDP
-//#define MAVLKIN_DJI
 //#define DEBUG_SENSORS
 
 #ifdef DJI_OSDK
@@ -30,6 +48,22 @@ static Mavlink* mavlink = nullptr;
 static std::thread mavThread;
 static bool pollForExit();
 
+
+/**
+    @brief
+    Initializes the main components of the application as follows:
+    1. Setup logging
+    2. Initialize/Start DJI Environment(LinuxSetup) and Vehicle
+        - if no DJI vehicle is available, a Mock vehicle ist started
+    3. Initialize MspController
+    4. Initialize/Start Mavlink
+         - if no DJI vehicle is available or udp mode is forced, UDP Mavlink channel is used
+            otherwise DJI Airlink-Mavlink channel is used
+
+    The application can be exited on stdin '1'.
+    @param
+    @return 
+*/
 int main(int argc, char** argv) {
 
     try 
@@ -74,12 +108,9 @@ int main(int argc, char** argv) {
     {
         spdlog::info("DJI vehicle found");
 
-        // Setup mobile communication
         #ifdef MAVLKIN_UDP
         mavlink = new MavlinkUDP(5001, 5000);
-        #endif
-
-        #ifdef MAVLKIN_DJI
+        #else
         mavlink = new MavlinkDJI();
         #endif
 
@@ -100,7 +131,7 @@ int main(int argc, char** argv) {
     MspController::getInstance()->initialize(mavlink);
     mspVehicle->initialize();
 
-    // Start mavlink connection
+    // Start mavlink eventloop
     mavThread = mavlink->start();
 
     // exit on input '1'
@@ -124,7 +155,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-
+/**
+    @brief
+    Polls the stdin for user input, the application exits on '1'.
+    @param
+    @return exit true/false
+*/
 static bool 
 pollForExit() {
     // Poll stdin, exit on input

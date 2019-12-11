@@ -1,3 +1,5 @@
+# *  @Copyright (c) 2019 Simon Waelti
+
 set (bmp280_src
     bmp280.c
     bmp280i2c.cpp

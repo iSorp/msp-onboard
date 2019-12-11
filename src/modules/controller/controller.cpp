@@ -1,3 +1,11 @@
+/**
+    Implementation of the MspController class.
+    @file controller.cpp
+    @version 1.0
+    @author Simon Waelti
+    @version 1.0 1.12.2019
+*/
+
 #include <mutex>
 #include "controller.h"
 
@@ -8,6 +16,7 @@ static std::mutex command_mutex;
 //-------------------------------------------------------------
 MspController *MspController::instance = 0;
 
+// Return the singleton instance
 MspController *
 MspController::getInstance() {
     if (!instance)
@@ -15,6 +24,7 @@ MspController::getInstance() {
     return instance;
 }
 
+// Initializes the Controller and sets the state machines init state. 
 void
 MspController::initialize(Mavlink* _mavlink) {
     this->mavlink    = _mavlink;
@@ -23,6 +33,7 @@ MspController::initialize(Mavlink* _mavlink) {
     setState(&stateInit);
 }
 
+// Returns the current vehicle state represented as Mavlink state.
 MAV_STATE 
 MspController::getMavState() {
     if (state == nullptr) {
@@ -34,6 +45,7 @@ MspController::getMavState() {
     }
 }
 
+// Returns the current vehicle mode represented as Mavlink mode.
 uint8_t 
 MspController::getMavMode() {
     if (vehicleInfo.state == EVehicleState::MSP_VHC_SIMULATION) {
@@ -42,6 +54,7 @@ MspController::getMavMode() {
     return vehicleInfo.mode;
 }
 
+// Sets the current state of the state machine.
 void 
 MspController::setState(State* _state) {
 
@@ -51,6 +64,7 @@ MspController::setState(State* _state) {
     state->entry();
 };
 
+// Sets the vehicle command callback function.
 void 
 MspController::setVehicleCommandCallback(VehicleCommandCallback callback, VehicleData vehicleData) {
     vCmdCbHandler.callback = callback;
@@ -61,6 +75,7 @@ MspController::setVehicleCommandCallback(VehicleCommandCallback callback, Vehicl
 // Command and notification interface
 //-------------------------------------------------------------
 
+// Sets the a vehicle command.
 EResult
 MspController::setCommand(uint16_t command, mavlink_command_long_t cmd) {
     // make sure only one vehicle notification call is handled
@@ -68,10 +83,7 @@ MspController::setCommand(uint16_t command, mavlink_command_long_t cmd) {
     return state->setCommand(command, cmd);
 }
 
-
-/*
-* Notification from vehicle is called by callback threads
-*/
+// Notification from vehicle is called by callback threads
 void
 MspController::vehicleNotification(EVehicleNotification notification, VehicleData data) {
 
@@ -85,6 +97,7 @@ MspController::vehicleNotification(EVehicleNotification notification, VehicleDat
     state->vehicleNotification(notification, data);
 }
 
+// Sets the a vehicle command.
 EResult 
 MspController::setVehicleCommand(EVehicleCmd command, void* data, size_t len) {
 
@@ -92,6 +105,7 @@ MspController::setVehicleCommand(EVehicleCmd command, void* data, size_t len) {
     return res;
 }
 
+// Sets the a vehicle command.
 EResult 
 MspController::setVehicleCommand(EVehicleCmd command) {
     return setVehicleCommand(command, NULL, 0);
@@ -102,7 +116,7 @@ MspController::setVehicleCommand(EVehicleCmd command) {
 //-------------------------------------------------------------
 /*
 * Gets the behavior mission item for a certain key. This item contains the behavior for the flight,
-* like speed and delay
+* like speed, delay and position.
 */
 mavlink_mission_item_t* 
 MspController::getMissionBehaviorItem(int key) {

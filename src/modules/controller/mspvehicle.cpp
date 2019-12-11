@@ -1,16 +1,30 @@
+/**
+    Contains the implementation of the MspMockVehicle.
+    @file mspvehicle.h
+    @version 1.0
+    @author Simon Waelti
+    @version 1.0 1.12.2019
+*/
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 #include "controller.h"
 #include "mspvehicle.h"
 
 
 static std::thread runner;
-static std::mutex pause_mutex;
 
 //-------------------------------------------------------------
 // Static funcitions
 //-------------------------------------------------------------
+
+/**
+    @brief
+    Callback function for commands emitted by MspController
+    @param EVehicleCmd command 
+    @param VehicleData vehicleData
+    @param void* userData 
+    @param size_t len
+    @return EResult
+*/
 static EResult 
 commandCallback(EVehicleCmd command, VehicleData vehicleData, void* userData, size_t len) {
     MspMockVehicle* vehicle = static_cast<MspMockVehicle*>(vehicleData);
@@ -24,6 +38,8 @@ commandCallback(EVehicleCmd command, VehicleData vehicleData, void* userData, si
 //-------------------------------------------------------------
 // Class MspMockVehicle 
 //-------------------------------------------------------------
+
+// Intializes the vehicle and notifies the controller about the state.
 void 
 MspMockVehicle::initialize() {
     MspController::getInstance()->setVehicleCommandCallback(commandCallback, this);
@@ -38,6 +54,7 @@ MspMockVehicle::initialize() {
 // Mission upload and running
 //-------------------------------------------------------------
 
+// Simulates the start of a new waypoint mission. This function is synchronized with the waypoint handling thread. 
 EResult
 MspMockVehicle::runWaypointMission() {
     if (runner.joinable()){
@@ -49,17 +66,17 @@ MspMockVehicle::runWaypointMission() {
     runner = std::thread(&MspMockVehicle::missionRun, this);
     return EResult::MSP_SUCCESS;
 }
-
+// Simulates the pausing of a running waypoint mission.
 EResult
 MspMockVehicle::pauseWaypointMission() {
     return EResult::MSP_PROGRESS;
 }
-
+// Simulates the resuming of a running waypoint mission.
 EResult
 MspMockVehicle::resumeWaypointMission() {
     return EResult::MSP_PROGRESS;
 }
-
+// Simulates the stopping of a running waypoint mission.
 EResult
 MspMockVehicle::stopWaypointMission() {
     exit = true;
@@ -69,6 +86,8 @@ MspMockVehicle::stopWaypointMission() {
 //-------------------------------------------------------------
 // Mission running helper thread
 //-------------------------------------------------------------
+
+// Runner function for the waypint handling thread. On each waypoint the MspController is notified.
 void 
 MspMockVehicle::missionRun() {
     spdlog::info("thread running");
@@ -92,12 +111,10 @@ MspMockVehicle::missionRun() {
 
             MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
         }
-        
-        
         sleep(1);
     }
 }
-
+// Calls the requestet command function
 EResult 
 MspMockVehicle::command(EVehicleCmd cmd, void* data, size_t len) {
   EResult ret = EResult::MSP_FAILED; 

@@ -1,3 +1,5 @@
+# *  @Copyright (c) 2019 Simon Waelti
+
 set (sensors_src
     sensors.cpp
     )

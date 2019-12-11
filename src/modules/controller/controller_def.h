@@ -1,3 +1,12 @@
+/**
+    Definitions for MspController
+    @file controller_def.h
+    @version 1.0
+    @author Simon Waelti
+    @version 1.0 1.12.2019
+*/
+
+
 #pragma once
 
 enum EVehicleNotification {
@@ -39,7 +48,7 @@ enum EResult {
 };
 
 enum EVehicleState {
-    MSP_VHC_NOT_AVAILABLE = -1,
+    MSP_VHC_NOT_AVAILABLE = -1, // init state
     MSP_VHC_AVAILABLE,
     MSP_VHC_SIMULATION
 };
