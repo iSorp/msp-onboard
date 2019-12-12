@@ -5,6 +5,9 @@ project(msp)
 message("System: ${CMAKE_SYSTEM_NAME}")
 message("Build type: ${CMAKE_BUILD_TYPE}")
 
+set(TARGET_BINARY_DIR  ${msp-onboard_SOURCE_DIR}/bin)
+
+
 if(NOT CMAKE_BUILD_TYPE) 
     set(CMAKE_BUILD_TYPE Debug)
 endif(NOT CMAKE_BUILD_TYPE)
@@ -75,6 +78,6 @@ if (DJI_OSDK)
     target_link_libraries(msp-onboard dji djiosdk-core)
 endif(DJI_OSDK)
 
-install (TARGETS msp-onboard DESTINATION "${msp-onboard_SOURCE_DIR}/bin")
+install (TARGETS msp-onboard DESTINATION "${TARGET_BINARY_DIR}")
 
 

@@ -7,13 +7,14 @@ project(msp-onboard)
 set (MSP_VERSION_MAJOR 1)
 set (MSP_VERSION_MINOR 0)
 
+option(BUILD_DOC "Build documentation" ON)
+
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
     option(DJI_OSDK "Use of dji osdk" ON)
     add_definitions(-DDJI_OSDK)
 endif()
 
 # Update submodules as needed
-# see https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     option(GIT_SUBMODULE "Check submodules during build" ON)
@@ -32,10 +33,12 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/Onboard-SDK/CMakeLists.txt")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
 
-
+# please build OSDK by its own
 #if (DJI_OSDK)
 #    add_subdirectory(Onboard-SDK)
 #endif ()
 
 add_subdirectory(spdlog)
 add_subdirectory(src)
+add_subdirectory(docs)
+

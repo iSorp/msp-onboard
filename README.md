@@ -8,4 +8,4 @@
 - mkdir _build
 - cd _build
 - cmake ..
-- sudo make install
+- make install

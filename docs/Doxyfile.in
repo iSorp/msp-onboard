@@ -1,0 +1,12 @@
+PROJECT_NAME            = "Mobile Sensor Platform MSP"
+PROJECT_NUMBER          = 1
+#PROJECT_LOGO           =
+USE_MDFILE_AS_MAINPAGE  = README.md
+
+OUTPUT_DIRECTORY        = @CMAKE_CURRENT_SOURCE_DIR@/../bin/doc_doxygen/
+INPUT                   = @CMAKE_CURRENT_SOURCE_DIR@/../src/ @CMAKE_CURRENT_SOURCE_DIR@/../docs
+INPUT                  += @CMAKE_CURRENT_SOURCE_DIR@/../README.md
+EXCLUDE                 = @CMAKE_CURRENT_SOURCE_DIR@/../src/lib   
+
+RECURSIVE               = YES
+JAVADOC_AUTOBRIEF       = YES

@@ -27,7 +27,7 @@ class MavlinkFtpManager : public MavlinkServiceManager
                     fileUploadWrite(this), 
                     fileUploadEnd(this)
                 { 
-                    state = (ServiceState<>*)&fileUploadInit;
+                    state = &fileUploadInit;
                 };
                 
                 // Variables
@@ -81,7 +81,7 @@ class MavlinkFtpManager : public MavlinkServiceManager
                     listDirectoryInit(this),
                     listDirectoryWrite(this)
                 { 
-                    state = (ServiceState<>*)&listDirectoryInit;
+                    state = &listDirectoryInit;
                 };
                 
                 // Variables
