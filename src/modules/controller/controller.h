@@ -97,6 +97,12 @@ class MspController {
 
 
         //------------------------------------------------------------- 
+        // Mission flight control
+        //-------------------------------------------------------------
+        int16_t getCurrentWp();
+
+
+        //------------------------------------------------------------- 
         // Mission repository
         //-------------------------------------------------------------
         /**
@@ -246,11 +252,14 @@ class MspController {
                 void exit() override;
                 void vehicleNotification(EVehicleNotification notification, VehicleData data) override;
                 EResult setCommand(uint16_t command, mavlink_command_long_t cmd) override;
+                int16_t getCurrent() {
+                    return currenindex;
+                }
 
             private:
                 bool missionActive;
                 bool userCommandPaused;
-
+                int16_t currenindex;
                 /**
                     Starts a way point mission, state transfer to idle on error
                     @return EResult

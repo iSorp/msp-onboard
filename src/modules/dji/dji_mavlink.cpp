@@ -54,7 +54,11 @@ MavlinkDJI::runService()
                 Mavlink::handleMessages(&msg);
             }
         }
-        delete this->buffer;
+        if (this->buffer) {
+            bufferLength = 0;
+            delete this->buffer;
+            this->buffer = nullptr;
+        }
     }
     Mavlink::runService();
     message_lock.unlock();

@@ -31,7 +31,7 @@
 #include "sensors.h"
 
 
-#define MAVLKIN_UDP
+// #define MAVLKIN_UDP
 //#define DEBUG_SENSORS
 
 #ifdef DJI_OSDK
@@ -41,6 +41,7 @@
     #include "dji_mavlink.h"
 
     static Vehicle* vehicle = nullptr;
+    static LinuxSetup* environment = nullptr;
 #endif
 
 static MspVehicle* mspVehicle = nullptr;
@@ -97,8 +98,8 @@ int main(int argc, char** argv) {
 
     // Setup OSDK.
     try {
-        LinuxSetup environment(2, arg);
-        vehicle = environment.getVehicle();
+        environment = new LinuxSetup(2, arg);
+        vehicle = environment->getVehicle();
     }
     catch (std::exception& e) {
         spdlog::error(e.what());
@@ -150,6 +151,7 @@ int main(int argc, char** argv) {
 
     delete mavlink;
     delete mspVehicle;
+    delete environment;
 
     spdlog::info("exit msp-onboard");
     return 0;

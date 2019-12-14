@@ -14,6 +14,7 @@
 #include "helper.h"
 #include "controller.h"
 #include "sensors.h"
+#include "sensor_def.h"
 
 //-------------------------------------------------------------
 // Static funcitions
@@ -45,7 +46,7 @@ writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std
         sensor_array.push_back({
             {"id", sensors[i].id},
             {"value", sensors[i].value},
-            {"mime", "text/plain" },
+            {"command_id", sensors[i].command }, // TODO id
         });
     }
 
@@ -53,8 +54,9 @@ writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std
     for (size_t i = 0; i < pictures.size(); i++) {
         std::string strIndex = std::to_string(i);
         sensor_array.push_back({
+            {"id", 0 },
             {"value", pictures[i] },
-            {"mime", "image/png" },
+            {"command_id", sensors[i].command  },
         });
     }
 
@@ -64,6 +66,7 @@ writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std
     j["y"] = wpdata->latitude;
     j["z"] = wpdata->altitude;
     j["date"] = dstream.str();
+    j["seq"] = std::to_string(wpdata->index);
     std::string file_path;
     file_path.append(WP_EXPORT_PATH);
     file_path.append("/wp");
@@ -98,6 +101,7 @@ MspController::Mission::missionStart() {
 
     spdlog::info("MspController::Mission::missionStart");
     EResult ret = EResult::MSP_FAILED;
+    currenindex = 0;
     
     // Upload mission data
     ret = context->setVehicleCommand(EVehicleCmd::MSP_CMD_UPLOAD_WAY_POINTS);
@@ -165,8 +169,6 @@ MspController::Mission::setCommand(uint16_t command, mavlink_command_long_t cmd)
 void 
 MspController::Mission::vehicleNotification(EVehicleNotification notification, VehicleData data) {
 
-    spdlog::debug("MspController::Mission::vehicleNotification(" + std::to_string(notification) + ")");
-
     switch (notification)
     {
     case EVehicleNotification::MSP_VHC_WAY_POINT_REACHED:
@@ -207,6 +209,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
         spdlog::debug("MspController::Mission::handleWpReached(" + std::to_string(wpdata->index) + ")");
         
         // get current BehaviorItem and execute assigned waypoint actions
+        currenindex = wpdata->index;
         mavlink_mission_item_t* item = context->getMissionBehaviorItem(wpdata->index);
         if (item) {
 
@@ -236,12 +239,16 @@ MspController::Mission::handleWpReached(VehicleData data) {
             }
             else {
                 // goto origin if the max number of waypoints is reached
+                currenindex -1;
+                sendMissionItemReached(-1);
                 context->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
                 context->setState(&context->stateIdle);
             }
         }
         else {
             // goto origin if no mission item for the current waypoint is found
+            currenindex -1;
+            sendMissionItemReached(-1);
             context->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
             context->setState(&context->stateIdle);
         }
@@ -264,8 +271,10 @@ MspController::Mission::executeAction(WaypointReachedData* wpdata) {
    
             switch (item.command)
             {
+   
             case MAV_CMD_USER_2:
                 // read sensor values 
+
                 sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
                 break;
             case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
@@ -273,7 +282,7 @@ MspController::Mission::executeAction(WaypointReachedData* wpdata) {
                 // take a picture (SDCard filesystem can not be accessed within the OSDK context, 
                 // so the assigement picture-waypoint is only in the MSDK possible (media manager))
                 context->setVehicleCommand(EVehicleCmd::MSP_CMD_TAKE_PICTURE, &item, 0);
-                pictures.push_back(std::to_string(id));
+                pictures.push_back(std::to_string(item.command));
                 break;
             default:
                 break;
@@ -288,6 +297,10 @@ void
 MspController::Mission::sendMissionItemReached(int seq) {
     
     Mavlink* mavlink = context->mavlink;
+
+    mavlink_mission_item_reached_t item;
+    item.seq = seq;
+    mavlink_msg_mission_item_reached_send_struct(mavlink->getChannel(), &item);
 
     // Send current mission item
     mavlink_mission_current_t wpc;

@@ -20,6 +20,7 @@ class MavlinkMissionManager : public MavlinkServiceManager
         void checkActiveMission();
         void activateMission();
         void missionDelete(const mavlink_message_t *msg);
+        void missionCurrent();
 
     private:      
 

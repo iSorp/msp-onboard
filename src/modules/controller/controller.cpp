@@ -111,6 +111,20 @@ MspController::setVehicleCommand(EVehicleCmd command) {
     return setVehicleCommand(command, NULL, 0);
 }
 
+
+//------------------------------------------------------------- 
+// Mission flight control
+//-------------------------------------------------------------
+int16_t 
+MspController::getCurrentWp() {
+    if (missionIsActive()) {
+        return stateMission.getCurrent();
+    }
+    else {
+        return -1;
+    }
+}
+
 //------------------------------------------------------------- 
 // Mission repository
 //-------------------------------------------------------------

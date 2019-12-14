@@ -60,7 +60,6 @@ vehicleStateCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userDat
     }else {
         vehicleInfo.state = EVehicleState::MSP_VHC_SIMULATION;
     }
-
     MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &vehicleInfo);
 }
 
@@ -99,6 +98,10 @@ MspDjiVehicle::initialize() {
 
     // callback registration for vehicle status
     vehicle->subscribe->registerUserPackageUnpackCallback(STATUS_PACKAGE_INDEX, vehicleStateCallback, this);
+
+    VehicleInfoData vehicleInfo = { };
+    vehicleInfo.state = EVehicleState::MSP_VHC_AVAILABLE;
+    MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_STATE, &vehicleInfo);
 }
 
 //-------------------------------------------------------------

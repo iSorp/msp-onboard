@@ -140,20 +140,35 @@ MspDjiVehicle::runWaypointMission() {
 
 EResult
 MspDjiVehicle::pauseWaypointMission() {
-    vehicle->missionManager->wpMission->pause(&missionPauseCallback, NULL);
-    return EResult::MSP_PROGRESS;   
+    if(vehicle->missionManager->wpMission){
+        vehicle->missionManager->wpMission->pause(&missionPauseCallback, NULL);
+        return EResult::MSP_PROGRESS; 
+    }
+    else {
+        return EResult::MSP_FAILED; 
+    } 
 }
 
 EResult
 MspDjiVehicle::resumeWaypointMission() {
-    vehicle->missionManager->wpMission->resume(&missionResumeCallback, NULL);
-    return EResult::MSP_PROGRESS;
+    if (vehicle->missionManager->wpMission) {
+        vehicle->missionManager->wpMission->resume(&missionResumeCallback, NULL);
+        return EResult::MSP_PROGRESS; 
+    }
+    else {
+        return EResult::MSP_FAILED; 
+    } 
 }
 
 EResult
 MspDjiVehicle::stopWaypointMission() {
-    vehicle->missionManager->wpMission->stop(missionStoppedCallback, this);
-    return EResult::MSP_PROGRESS;
+    if (vehicle->missionManager->wpMission){
+        vehicle->missionManager->wpMission->stop(missionStoppedCallback, this);
+        return EResult::MSP_PROGRESS; 
+    }
+    else {
+        return EResult::MSP_FAILED; 
+    } 
 }
 
 //-------------------------------------------------------------

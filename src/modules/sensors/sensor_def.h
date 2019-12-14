@@ -4,6 +4,7 @@
 
 typedef struct {
     int id;
+    int command;
     std::string value;
 } SensorValue;
 

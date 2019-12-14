@@ -13,14 +13,18 @@ MavlinkMissionManager::run() {
 }
 
 void
-MavlinkMissionManager::handleMessages(const mavlink_message_t *msg)
-{
+MavlinkMissionManager::handleMessages(const mavlink_message_t *msg) {
     switch (msg->msgid) {
 
         // Start mission item upload (Creates a new mission)
         case MAVLINK_MSG_ID_MISSION_COUNT:
             spdlog::info("MavlinkMissionManager::handleMessages, start mission download");
             missionDownloadService.setState(&missionDownloadService.missionDownloadInit);
+            break;
+
+      case MAVLINK_MSG_ID_MISSION_CURRENT:
+            spdlog::info("MavlinkMissionManager::handleMessages, return current item");
+            missionCurrent();
             break;
 
         // stops and deletes the current mission
@@ -36,8 +40,7 @@ MavlinkMissionManager::handleMessages(const mavlink_message_t *msg)
 }
 
 void
-MavlinkMissionManager::missionDelete(const mavlink_message_t *msg)
-{
+MavlinkMissionManager::missionDelete(const mavlink_message_t *msg) {
     mavlink_mission_clear_all_t msgCa;
     mavlink_msg_mission_clear_all_decode(msg, &msgCa);
     
@@ -51,8 +54,14 @@ MavlinkMissionManager::missionDelete(const mavlink_message_t *msg)
 }
 
 void
-MavlinkMissionManager::sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type)
-{
+MavlinkMissionManager::missionCurrent() {
+    mavlink_mission_current_t item;
+    item.seq = MspController::getInstance()->getCurrentWp();
+	mavlink_msg_mission_current_send_struct(mavlink->getChannel(), &item);
+}
+
+void
+MavlinkMissionManager::sendMissionAck(uint8_t sysid, uint8_t compid, uint8_t type) {
 	mavlink_mission_ack_t wpa;
 	wpa.target_system    = sysid;
 	wpa.target_component = compid;
