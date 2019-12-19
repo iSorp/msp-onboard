@@ -60,7 +60,7 @@ writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std
         sensor_array.push_back({
             {"id", 0 },
             {"value", pictures[i] },
-            {"command_id", sensors[i].command  },
+            {"command_id", 0 },
         });
     }
 
@@ -271,15 +271,14 @@ MspController::Mission::executeAction(WaypointReachedData* wpdata) {
         // execute all waypoint actions
         for (size_t i = 0; i < items->size(); i++) {
             mavlink_mission_item_t item = (*items)[i];
-            int id = (int)item.param1;
-   
+            SensorValue value;
             switch (item.command)
             {
-   
             case MAV_CMD_USER_2:
                 // read sensor values 
-
-                sensors.push_back(MspSensors::getInstance()->getSensorValue(id));
+                value = MspSensors::getInstance()->getSensorValue((int)item.param1);
+                value.command = item.param2; // command for Action mapping in backend
+                sensors.push_back(value);
                 break;
             case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
 
