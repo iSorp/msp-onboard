@@ -8,6 +8,7 @@
 
 #include <string>
 #include <sstream>
+#include <chrono>
 #include <iomanip>
 
 #include "json.hpp"
@@ -30,12 +31,15 @@
 static void
 writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
 
-    std::time_t t = std::time(0);
-    std::tm* now = std::localtime(&t);
+    //std::time_t t = std::time(0);
+    // std::tm* now = std::localtime(&t);
+    const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::stringstream dstream;
     // 2009-06-15T13:45:30 
-    dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
-        << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
+    //dstream << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' <<  now->tm_mday 
+    //    << 'T' << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec;
+
+    dstream <<  std::put_time(std::gmtime(&now), "%FT%TZ");
 
     nlohmann::json j;
     nlohmann::json sensor_array = nlohmann::json::array();
