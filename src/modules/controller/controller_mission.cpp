@@ -28,6 +28,25 @@
     @param sensors set of sensors (values and ids)
     @param pictures set of ids, pictures musst be assigned to the way point results in the mobile app, OSDK does not allow access to the filesystem.
 */
+typedef unsigned char uchar;
+static const std::string b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw0123456789+/";
+static std::string base64_encode(const std::string &in) {
+    std::string out;
+
+    int val=0, valb=-6;
+    for (uchar c : in) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb>=0) {
+            out.push_back(b[(val>>valb)&0x3F]);
+            valb-=6;
+        }
+    }
+    if (valb>-6) out.push_back(b[((val<<8)>>(valb+8))&0x3F]);
+    while (out.size()%4) out.push_back('=');
+    return out;
+}
+
 static void
 writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std::vector<std::string> pictures) {
 
@@ -49,7 +68,7 @@ writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std
         std::string strIndex = std::to_string(i);
         sensor_array.push_back({
             {"id", sensors[i].id},
-            {"value", sensors[i].value},
+            {"value", base64_encode(sensors[i].value)},
             {"command_id", sensors[i].command }, // TODO id
         });
     }
@@ -330,21 +349,3 @@ MspController::Mission::validateMissionItems() {
     }*/
 }
 
-typedef unsigned char uchar;
-static const std::string b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";//=
-static std::string base64_encode(const std::string &in) {
-    std::string out;
-
-    int val=0, valb=-6;
-    for (uchar c : in) {
-        val = (val<<8) + c;
-        valb += 8;
-        while (valb>=0) {
-            out.push_back(b[(val>>valb)&0x3F]);
-            valb-=6;
-        }
-    }
-    if (valb>-6) out.push_back(b[((val<<8)>>(valb+8))&0x3F]);
-    while (out.size()%4) out.push_back('=');
-    return out;
-}
