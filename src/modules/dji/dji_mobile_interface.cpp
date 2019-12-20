@@ -3,7 +3,7 @@
 #include "dji_mobile_interface.h"
 
 
-#define OSDK_DATA_MAX_SIZE 100
+static size_t OSDK_DATA_MAX_SIZE = 100;
 
 
 //-------------------------------------------------------------
@@ -16,7 +16,14 @@ mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
 
     // send received data to dji mavlink receiver
     if (mavlink) {
-        mavlink->setBuffer(recvFrame.recvData.raw_ack_array, MAX_INCOMING_DATA_SIZE);
+        int len = recvFrame.recvInfo.len;
+        for (int i = 0; i < len; i++) {
+            printf("%0x", recvFrame.recvData.raw_ack_array[i]);
+        }
+        printf("\n");
+
+        size_t size = std::min(len, 100);
+        mavlink->setBuffer(recvFrame.recvData.raw_ack_array, size);//MAX_INCOMING_DATA_SIZE);
     }
 }
 
@@ -24,13 +31,13 @@ mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
 // MobileSDK communication
 //-------------------------------------------------------------
 void
-sendDataToMobile(uint8_t* data, uint8_t len, void* userData)
+sendDataToMobile(uint8_t* data, size_t len, void* userData)
 {
     Vehicle* vehicle = static_cast<Vehicle*>(userData);
     if (vehicle) {
-        uint8_t writePos = 0;
-        if (len > OSDK_DATA_MAX_SIZE) {
-            while (writePos < len) {
+        size_t writePos = 0;
+        if (len > 100) {
+            while (writePos < len) {                
                 size_t length = std::min(len - writePos, OSDK_DATA_MAX_SIZE);
                 uint8_t buf[length] = {};
                 memcpy (&buf, &data[writePos], length);
@@ -38,7 +45,8 @@ sendDataToMobile(uint8_t* data, uint8_t len, void* userData)
                 vehicle->mobileDevice->sendDataToMSDK(buf, length);
             }
         } else {
-            vehicle->mobileDevice->sendDataToMSDK(data, len);
+            uint8_t size = len;
+            vehicle->mobileDevice->sendDataToMSDK(data, size);
         }
     }
 }

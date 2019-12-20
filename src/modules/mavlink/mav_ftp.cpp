@@ -286,7 +286,6 @@ MavlinkFtpManager::FileUploadService::FileUploadWrite::handleMessage(const mavli
             spdlog::warn("FileUploadWrite::handleMessages, file not anymore open");
             context->sendNakFailure(context->transferSysId, context->transferCompId, FNF);
         }
-        
     }
 }
 

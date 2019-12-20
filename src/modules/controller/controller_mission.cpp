@@ -85,8 +85,8 @@ writeWpResult(WaypointReachedData* wpdata, std::vector<SensorValue> sensors, std
 
     j["sensors"] = sensor_array;
     
-    j["x"] = wpdata->longitude;
-    j["y"] = wpdata->latitude;
+    j["x"] = wpdata->longitude * M_PI/180;
+    j["y"] = wpdata->latitude  * M_PI/180;
     j["z"] = wpdata->altitude;
     j["date"] = dstream.str();
     j["seq"] = std::to_string(wpdata->index);
@@ -262,7 +262,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
             }
             else {
                 // goto origin if the max number of waypoints is reached
-                currenindex -1;
+                currenindex = -1;
                 sendMissionItemReached(-1);
                 context->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
                 context->setState(&context->stateIdle);
@@ -270,7 +270,7 @@ MspController::Mission::handleWpReached(VehicleData data) {
         }
         else {
             // goto origin if no mission item for the current waypoint is found
-            currenindex -1;
+            currenindex = -1;
             sendMissionItemReached(-1);
             context->setVehicleCommand(EVehicleCmd::MSP_CMD_RETURN_TO_ORIGIN);
             context->setState(&context->stateIdle);

@@ -36,6 +36,8 @@ MavlinkDJI::sendPacket()
 	return ret;
 }
 
+uint8_t buffer[300];
+
 void
 MavlinkDJI::runService()
 {
@@ -46,11 +48,12 @@ MavlinkDJI::runService()
 
     if (bufferLength > 0)
     {
-        mavlink_message_t msg;
         mavlink_status_t status;
-
+        mavlink_message_t msg;
+        
         for (ssize_t i = 0; i < bufferLength; i++) {
             if (mavlink_parse_char(getChannel(), buffer[i], &msg, &status)) {
+                status = {};
                 Mavlink::handleMessages(&msg);
             }
         }

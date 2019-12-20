@@ -12,7 +12,7 @@
 
 
 // Typ for callback function which the data actually sends to the receiver
-typedef void (*SendDataCallback)(uint8_t* data, uint8_t len, void* userData);
+typedef void (*SendDataCallback)(uint8_t* data, size_t len, void* userData);
 
 typedef struct DataCallbackHandler{
     SendDataCallback callback;

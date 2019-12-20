@@ -6,4 +6,4 @@
 void
 mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData);
 void 
-sendDataToMobile(uint8_t* data, uint8_t len, void* userData);
+sendDataToMobile(uint8_t* data, size_t len, void* userData);
