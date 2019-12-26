@@ -303,7 +303,7 @@ class MspController {
                 EResult setCommand(uint16_t command, mavlink_command_long_t cmd) override;
         };
 
-             stateInit;
+        Init stateInit;
         Idle stateIdle;
         Mission stateMission;
         Command stateCommand;
