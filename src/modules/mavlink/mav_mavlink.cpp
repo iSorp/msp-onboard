@@ -1,3 +1,11 @@
+/**
+    @file mav_mavlink.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
+
 #include <stdio.h>
 #include <list> 
 #include <iterator> 

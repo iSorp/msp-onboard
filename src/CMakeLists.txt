@@ -38,7 +38,7 @@ link_libraries(stdc++fs)
 include_directories("${CMAKE_INSTALL_PREFIX}/include/djiosdk")
 
 # Mavlink-SDK
-set(MAVLINK_LIB_HEADER_DIR ../mavlink/v1.0)
+set(MAVLINK_LIB_HEADER_DIR ../mavlink/v2.0)
 
 FILE(GLOB MAVLINK_LIB_HEADERS
         "${MAVLINK_LIB_HEADER_DIR}"
@@ -47,8 +47,6 @@ FILE(GLOB MAVLINK_LIB_HEADERS
 
 include_directories("${MAVLINK_LIB_HEADERS}")
 
-# Common libraries and headers
-set(MAVLINK_LIB_HEADER_DIR ../mavlink/v1.0)
 
 FILE(GLOB COMMMON_LIB_HEADERS
         "${PROJECT_SOURCE_DIR}/include"
@@ -79,5 +77,4 @@ if (DJI_OSDK)
 endif(DJI_OSDK)
 
 install (TARGETS msp-onboard DESTINATION "${TARGET_BINARY_DIR}")
-
 

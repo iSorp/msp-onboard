@@ -1,3 +1,11 @@
+/**
+    @file bmp280i2c.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/   
+
+
 #pragma once
 
 #include <string>

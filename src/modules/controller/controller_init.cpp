@@ -1,9 +1,9 @@
 /**
-    Implementation of the Init state class.
     @file controller_init.cpp
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+    @brief 
+    Implementation of the Init state class.
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
 
 #include <stdio.h>

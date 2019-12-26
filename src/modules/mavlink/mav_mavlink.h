@@ -1,3 +1,11 @@
+/**
+    @file mav_mavlink.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
+
 #pragma once
 
 #include <stdlib.h>
@@ -72,7 +80,7 @@ struct Mavlink
         // Variables
         Mavlink *next;
 
-        bool stopThread;
+        bool stopThread = false;
         int	instance_id;
         uint64_t sendTime = 0;
 

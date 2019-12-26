@@ -1,3 +1,10 @@
+/**
+    @file mav_mavlink_udp.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
 
 #include <string>
 #include <arpa/inet.h>

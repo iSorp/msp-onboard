@@ -1,3 +1,10 @@
+/**
+    @file mav_service.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/    
+
 #pragma once
 
 #include <typeinfo>

@@ -1,3 +1,10 @@
+/**
+    @file dji_mavlink.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/
+
 #include <mutex>
 
 #include "defines.h"

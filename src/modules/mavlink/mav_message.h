@@ -1,3 +1,10 @@
+/**
+    @file mav_message.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/    
+
 #pragma once
 
 #include "mav_service.h"

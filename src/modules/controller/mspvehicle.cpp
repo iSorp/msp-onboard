@@ -1,9 +1,9 @@
 /**
+    @file mspvehicle.cpp
+    @brief 
     Contains the implementation of the MspMockVehicle.
-    @file mspvehicle.h
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+    
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
 #include <thread>
 #include "controller.h"

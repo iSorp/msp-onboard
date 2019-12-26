@@ -1,3 +1,10 @@
+/**
+    @file mav_ftp_protocol.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
 #pragma once
 
 #include <sys/types.h>

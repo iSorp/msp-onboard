@@ -1,11 +1,3 @@
-#pragma once
-
-#include <stdint.h>
-#include <iostream>
-#include <string>
-#include <sys/time.h>
-#include <type_traits>
-
 /*******************************************************************************
  Copyright (C) 2010  Bryan Godbolt godbolt ( a t ) ualberta.ca
  
@@ -22,6 +14,15 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+
+#pragma once
+
+#include <stdint.h>
+#include <iostream>
+#include <string>
+#include <sys/time.h>
+#include <type_traits>
+
 // QNX timer version 
 #if (defined __QNX__) | (defined __QNXNTO__)
 inline uint64_t microsSinceEpoch()
