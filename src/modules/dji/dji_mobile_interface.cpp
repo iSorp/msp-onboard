@@ -17,11 +17,11 @@ mobileCallback(Vehicle* vehicle, RecvContainer recvFrame, UserData userData) {
     // send received data to dji mavlink receiver
     if (mavlink) {
         int len = recvFrame.recvInfo.len;
-        for (int i = 0; i < len; i++) {
+        /*for (int i = 0; i < len; i++) {
             printf("%0x", recvFrame.recvData.raw_ack_array[i]);
         }
-        printf("\n");
-
+        printf("\n");*/
+        
         size_t size = std::min(len, 100);
         mavlink->setBuffer(recvFrame.recvData.raw_ack_array, size);//MAX_INCOMING_DATA_SIZE);
     }

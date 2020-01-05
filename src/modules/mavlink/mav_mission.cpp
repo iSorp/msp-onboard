@@ -46,7 +46,7 @@ MavlinkMissionManager::missionDelete(const mavlink_message_t *msg) {
     
     EResult res = MspController::getInstance()->missionDelete();
     if (res == EResult::MSP_SUCCESS) {
-        sendMissionAck(msg->sysid, msg->compid, 0);
+        sendMissionAck(msg->sysid, msg->compid, MAV_MISSION_ACCEPTED);
     }
     else {
         sendMissionAck(msg->sysid, msg->compid, MAV_MISSION_ERROR);

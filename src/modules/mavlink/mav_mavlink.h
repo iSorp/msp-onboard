@@ -72,7 +72,7 @@ struct Mavlink
         // Variables
         Mavlink *next;
 
-        bool stopThread;
+        bool stopThread = false;
         int	instance_id;
         uint64_t sendTime = 0;
 
