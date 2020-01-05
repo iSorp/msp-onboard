@@ -299,7 +299,7 @@ MspController::Mission::executeAction(WaypointReachedData* wpdata) {
                 value.command = item.param2; // command for Action mapping in backend
                 sensors.push_back(value);
                 break;
-            case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
+            case MAV_CMD_IMAGE_START_CAPTURE:
 
                 // take a picture (SDCard filesystem can not be accessed within the OSDK context, 
                 // so the assigement picture-waypoint is only in the MSDK possible (media manager))

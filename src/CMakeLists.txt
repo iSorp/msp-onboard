@@ -38,7 +38,7 @@ link_libraries(stdc++fs)
 include_directories("${CMAKE_INSTALL_PREFIX}/include/djiosdk")
 
 # Mavlink-SDK
-set(MAVLINK_LIB_HEADER_DIR ../mavlink/v2.0)
+set(MAVLINK_LIB_HEADER_DIR ../mavlink/c_library_v2)
 
 FILE(GLOB MAVLINK_LIB_HEADERS
         "${MAVLINK_LIB_HEADER_DIR}"
