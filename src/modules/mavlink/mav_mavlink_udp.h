@@ -1,3 +1,11 @@
+/**
+    @file mav_mavlink_udp.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
+
 #include <poll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

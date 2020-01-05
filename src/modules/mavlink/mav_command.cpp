@@ -1,3 +1,10 @@
+/**
+    @file mav_command.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
 #include <string>
 
 #include "helper.h"

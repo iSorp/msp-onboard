@@ -1,10 +1,5 @@
 /**
     @file main.cpp
-    @version 1.0
-    @author Simon Waelti,
-    @version 1.0 1.12.2019
-    copyright smauel simon 2019
-
     @brief 
     This application is multithreaded and implements following main threads:
     1. Main thread: Used for initialization
@@ -16,6 +11,8 @@
         a. Serial Read 
         b. USB Read
         c. Callback
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
 
 #include <exception>

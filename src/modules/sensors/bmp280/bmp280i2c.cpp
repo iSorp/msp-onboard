@@ -1,3 +1,10 @@
+/**
+    @file bmp280i2c.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/   
+
 
 #include <iostream>
 #include <errno.h>

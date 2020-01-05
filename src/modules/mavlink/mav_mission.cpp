@@ -1,3 +1,10 @@
+/**
+    @file mav_mission.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/    
+
 #include <stdio.h>
 #include "mav_mission.h"
 #include "mav_mavlink.h"

@@ -1,3 +1,10 @@
+/**
+    @file dji_mobile_interface.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/
+
 #include <algorithm>
 #include "dji_mspvehicle.h"
 #include "dji_mobile_interface.h"

@@ -1,3 +1,11 @@
+/**
+    @file sensors.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/   
+
+
 #include <iostream>
 #include <sys/ioctl.h>
 #include <fcntl.h>

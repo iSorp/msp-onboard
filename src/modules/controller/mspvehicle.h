@@ -1,12 +1,22 @@
 /**
+    @file controller.h
+    @brief 
     MspVehicle: Defines a abstract wrapper structure for a physical or logical vehicle.
     MspMockVehicle: Defines a logical mock vehicle to thest the interfaces and logical steps of MspController. This
     Vehicle creates a new thread for simulating waypoint handling.
-    @file mspvehicle.cpp
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
+
+
+/**
+    @file mspvehicle.cpp
+    Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+
+    @brief 
+    Contains the implementation of the MspMockVehicle.
+*/
+
 
 #pragma once
 

@@ -1,4 +1,4 @@
-# *  @Copyright (c) 2019 Simon Waelti
+# Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 
 set (dji_src 
     dji_linux_environment.cpp

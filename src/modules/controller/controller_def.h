@@ -1,9 +1,8 @@
 /**
-    Definitions for MspController
     @file controller_def.h
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+    @brief Definitions for MspController
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
 
 

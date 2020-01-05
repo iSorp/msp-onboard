@@ -1,3 +1,5 @@
+# Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+
 
 # https://cmake.org/cmake-tutorial/
 

@@ -1,11 +1,10 @@
 /**
-    Implementation of the Command state class.
     @file controller_command.cpp
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+    @brief 
+    Implementation of the Command state class.
+    
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
-
 #include "controller.h"
 
 

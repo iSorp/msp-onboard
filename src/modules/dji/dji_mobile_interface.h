@@ -1,3 +1,10 @@
+/**
+    @file dji_mobile_interface.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/
+
 #pragma once
 
 #include <dji_vehicle.hpp>

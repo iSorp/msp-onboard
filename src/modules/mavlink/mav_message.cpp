@@ -1,3 +1,10 @@
+/**
+    @file mav_message.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
 
 #include "helper.h"
 #include "controller.h"

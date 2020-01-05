@@ -1,3 +1,10 @@
+/**
+    @file dji_mission.cpp
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/
+
 #include <cmath>
 #include <vector>
 #include <dji_vehicle.hpp>

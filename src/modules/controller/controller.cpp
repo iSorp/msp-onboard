@@ -1,11 +1,10 @@
 /**
-    Implementation of the MspController class.
     @file controller.cpp
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+    @brief 
+    Implementation of the MspController class.
+        
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
-
 #include <mutex>
 #include "controller.h"
 

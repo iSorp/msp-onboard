@@ -1,3 +1,11 @@
+/**
+    @file mav_ftp.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/        
+
+
 #pragma once
 #include <iostream>
 #include <fstream>

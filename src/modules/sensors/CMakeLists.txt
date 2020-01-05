@@ -1,4 +1,4 @@
-# *  @Copyright (c) 2019 Simon Waelti
+# Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 
 set (sensors_src
     sensors.cpp

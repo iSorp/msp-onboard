@@ -1,9 +1,9 @@
 /**
-    Definition of the MspController containing a state machine for vehicle commands.
     @file controller.h
-    @version 1.0
-    @author Simon Waelti
-    @version 1.0 1.12.2019
+    @brief
+    Definition of the MspController containing a state machine for vehicle commands.
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
 
 #pragma once

@@ -1,3 +1,10 @@
+/**
+    @file mav_mission.h
+    @brief
+
+    @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+*/    
+
 #pragma once
 #pragma GCC diagnostic ignored "-Wreorder"
 

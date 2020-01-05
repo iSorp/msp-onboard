@@ -1,3 +1,5 @@
+# Copyright (c) 2019 Samuel Ackermann, Simon Wälti
+
 set (mavlink_src 
     mav_mavlink.cpp
     mav_mavlink_udp.cpp
