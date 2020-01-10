@@ -4,8 +4,6 @@
 
     @Copyright (c) 2019 Samuel Ackermann, Simon Wälti
 */
-
-
 #pragma once
 
 enum EVehicleNotification {
@@ -59,7 +57,7 @@ typedef struct VehicleInfoData {
 
 typedef struct WaypointReachedData {        
     u_int16_t index;
-    float longitude;    // x /*!< unit: rad */
-    float latitude;     // y /*!< unit: rad */     
+    double longitude;    // x /*!< unit: rad */
+    double latitude;     // y /*!< unit: rad */     
     float altitude;     // z /*!< WGS 84 reference ellipsoid */
 } WaypointReachedData;

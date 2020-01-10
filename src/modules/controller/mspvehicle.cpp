@@ -91,7 +91,7 @@ MspMockVehicle::stopWaypointMission() {
 void 
 MspMockVehicle::missionRun() {
     spdlog::info("thread running");
-    sleep(2);
+    sleep(3);
 
     for (size_t i = 0; i < MspController::getInstance()->getMissionItemCount(); i++) {
         
@@ -105,8 +105,8 @@ MspMockVehicle::missionRun() {
             WaypointReachedData wpdata;
             wpdata.index = i;
 
-            wpdata.latitude  = item->y;
-            wpdata.longitude = item->x;
+            wpdata.latitude  = item->y * M_PI/180;
+            wpdata.longitude = item->x * M_PI/180;
             wpdata.altitude  = item->z;
 
             MspController::getInstance()->vehicleNotification(EVehicleNotification::MSP_VHC_WAY_POINT_REACHED, &wpdata);
