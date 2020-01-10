@@ -1,0 +1,9 @@
+[Unit]
+Description=Mobile sensor platform
+After=multi-user.target
+
+[Service]
+ExecStart=/home/msp/msp-onboard/bin/msp-onboard
+
+[Install]
+WantedBy=multi-user.target
