@@ -97,7 +97,7 @@ cd build
 
 ```
 
-# App Sercice
+# App Service
 ```
 sudo systemctl enable msp.service
 sudo systemctl start msp.service
